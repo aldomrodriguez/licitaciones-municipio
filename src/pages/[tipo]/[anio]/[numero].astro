@@ -1,0 +1,187 @@
+---
+import Publico from '../../../layouts/Publico.astro';
+import Recorrido from '../../../components/publico/Recorrido.astro';
+import EstadoBadge from '../../../components/ui/EstadoBadge.astro';
+import IconoArchivo from '../../../components/ui/IconoArchivo.astro';
+import Icono from '../../../components/ui/Icono.astro';
+import descarga from '@tabler/icons/outline/download.svg?raw';
+import volver from '@tabler/icons/outline/arrow-left.svg?raw';
+import { db } from '../../../lib/db';
+import { detallePublico } from '../../../lib/procedimientos';
+import { ESTADOS, TIPOS, esTipo } from '../../../lib/estados';
+import { formatearFecha, formatearFechaHora, formatearMonto, formatearTamano } from '../../../lib/formato';
+import { etiquetaFormato } from '../../../lib/archivos-cliente';
+import { urlDescargaPublica } from '../../../lib/rutas';
+import { describirEntradaPublica } from '../../../lib/historial-texto';
+import marca from '../../../components/marca/marca.json';
+
+const { tipo, anio, numero } = Astro.params;
+const anioN = Number(anio);
+const numeroN = Number(numero);
+const d = tipo && esTipo(tipo) && Number.isInteger(anioN) && Number.isInteger(numeroN) ? detallePublico(db(), tipo, anioN, numeroN) : null;
+if (!d) return Astro.rewrite('/404');
+
+const p = d.procedimiento;
+const nombre = `${TIPOS[p.tipo].nombre} n° ${p.numero}/${p.anio}`;
+const def = ESTADOS[d.estado];
+const conMontoNoInformado = d.adjudicaciones.some((a) => a.monto == null);
+
+const datos: [string, string][] = [];
+if (p.presupuestoOficial != null) datos.push(['Presupuesto oficial', formatearMonto(p.presupuestoOficial)]);
+if (p.valorPliego != null) datos.push(['Valor del pliego', formatearMonto(p.valorPliego)]);
+if (p.fechaApertura) datos.push(['Fecha de apertura', formatearFecha(p.fechaApertura)]);
+if (p.lugarApertura) datos.push(['Lugar de apertura', p.lugarApertura]);
+if (p.invitados != null) datos.push(['Proveedores invitados', String(p.invitados)]);
+if (p.cantidadOfertantes != null) datos.push(['Ofertas recibidas', String(p.cantidadOfertantes)]);
+if (p.areaSolicitante) datos.push(['Área solicitante', p.areaSolicitante]);
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'GovernmentService',
+  name: nombre,
+  description: p.objeto,
+  provider: { '@type': 'GovernmentOrganization', name: 'Municipio de Lobos' },
+};
+---
+
+<Publico titulo={nombre} descripcion={`${nombre}: ${p.objeto} Estado: ${def.nombre}.`} datosEstructurados={jsonLd}>
+  <section class="border-b border-linea bg-papel">
+    <div class="contenedor py-10 sm:py-14">
+      <nav aria-label="Ubicación" class="mb-8 text-xs text-gris">
+        <ol class="flex flex-wrap items-center gap-2.5">
+          <li><a href={marca.inicio} class="hover:text-tinta hover:underline">Inicio</a></li>
+          <li aria-hidden="true">›</li>
+          <li><a href="/" class="hover:text-tinta hover:underline">Licitaciones</a></li>
+          <li aria-hidden="true">›</li>
+          <li><b class="text-tinta" aria-current="page">{TIPOS[p.tipo].corto} {p.numero}/{p.anio}</b></li>
+        </ol>
+      </nav>
+      <div class="flex flex-wrap items-center gap-3">
+        <p class="font-semibold text-gris">{TIPOS[p.tipo].nombre}</p>
+        <EstadoBadge estado={d.estado} tamano="md" />
+      </div>
+      <h1 class="cifras mt-2 text-[56px] leading-none font-extrabold tracking-[-.05em] sm:text-[88px]">
+        <span class="sr-only">{TIPOS[p.tipo].nombre} </span>n° {p.numero}/{p.anio}
+      </h1>
+      <p class="mt-5 max-w-[760px] text-xl leading-snug text-balance">{p.objeto}</p>
+      {
+        p.motivoEstado && def.pideMotivo && (
+          <p class="mt-5 max-w-[760px] rounded-md border-l-4 border-peligro bg-white px-4 py-3 text-[15px]">
+            <b>{def.nombre}:</b> {p.motivoEstado}
+          </p>
+        )
+      }
+      <div class="mt-10 max-w-[760px]">
+        <Recorrido tipo={p.tipo} estado={d.estado} />
+      </div>
+    </div>
+  </section>
+
+  <div class="contenedor grid gap-12 py-12 lg:grid-cols-[1fr_340px] lg:gap-16">
+    <div class="min-w-0 space-y-12">
+      {
+        datos.length > 0 && (
+          <section aria-labelledby="t-datos">
+            <h2 id="t-datos" class="text-2xl font-bold tracking-tight">Datos del procedimiento</h2>
+            <dl class="cifras mt-5 grid gap-x-8 sm:grid-cols-2">
+              {datos.map(([k, v]) => (
+                <div class="border-t border-linea py-3">
+                  <dt class="text-sm text-gris">{k}</dt>
+                  <dd class="mt-0.5 font-semibold">{v}</dd>
+                </div>
+              ))}
+            </dl>
+            {p.observacionesPublicas && <p class="mt-4 text-[15px] leading-relaxed text-gris">{p.observacionesPublicas}</p>}
+          </section>
+        )
+      }
+
+      {
+        d.adjudicaciones.length > 0 && (
+          <section aria-labelledby="t-adj">
+            <h2 id="t-adj" class="text-2xl font-bold tracking-tight">Adjudicación</h2>
+            <table class="cifras mt-5 w-full text-left">
+              <caption class="sr-only">Proveedores adjudicados y montos</caption>
+              <thead>
+                <tr class="border-b-2 border-tinta text-sm">
+                  <th scope="col" class="py-2 font-semibold">Proveedor</th>
+                  <th scope="col" class="py-2 text-right font-semibold">Monto</th>
+                </tr>
+              </thead>
+              <tbody>
+                {d.adjudicaciones.map((a) => (
+                  <tr class="border-b border-linea">
+                    <td class="py-3 pr-4">{a.proveedor}</td>
+                    <td class="py-3 text-right whitespace-nowrap">{a.monto == null ? <span class="text-gris">No informado</span> : formatearMonto(a.monto)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              {d.adjudicaciones.length > 1 && !conMontoNoInformado && (
+                <tfoot>
+                  <tr>
+                    <th scope="row" class="py-3 font-bold">Total adjudicado</th>
+                    <td class="py-3 text-right text-lg font-bold whitespace-nowrap">{formatearMonto(d.totalAdjudicado)}</td>
+                  </tr>
+                </tfoot>
+              )}
+            </table>
+          </section>
+        )
+      }
+
+      <section aria-labelledby="t-docs">
+        <h2 id="t-docs" class="text-2xl font-bold tracking-tight">Documentación</h2>
+        {
+          d.documentos.length === 0 ? (
+            <p class="mt-4 text-gris">Todavía no hay documentación publicada para este procedimiento.</p>
+          ) : (
+            <ul class="mt-5 divide-y divide-linea border-y border-linea">
+              {d.documentos.map((doc) => (
+                <li>
+                  <a href={urlDescargaPublica(doc.id)} class="group flex items-center gap-4 py-4 hover:bg-papel sm:px-3" download>
+                    <span class="grid size-11 shrink-0 place-items-center rounded-md bg-rojo-claro text-rojo">
+                      <IconoArchivo mime={doc.mime} />
+                    </span>
+                    <span class="min-w-0 flex-1">
+                      <span class="block font-semibold group-hover:text-rojo">{doc.titulo}</span>
+                      <span class="cifras block text-sm text-gris">
+                        {doc.categoria}. {etiquetaFormato(doc.mime)}, {formatearTamano(doc.tamano)}, publicado el {formatearFecha(doc.subidoEn, 'corta')}
+                      </span>
+                    </span>
+                    <span class="hidden items-center gap-1.5 text-sm font-semibold text-rojo sm:flex">
+                      <Icono svg={descarga} tamano={18} /> Descargar
+                    </span>
+                    <span class="sr-only">(descargar {etiquetaFormato(doc.mime)})</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )
+        }
+      </section>
+    </div>
+
+    <aside aria-labelledby="t-novedades" class="lg:border-l lg:border-linea lg:pl-10">
+      <h2 id="t-novedades" class="text-lg font-bold">Novedades</h2>
+      {
+        d.historial.length === 0 ? (
+          <p class="mt-3 text-sm text-gris">Sin novedades publicadas.</p>
+        ) : (
+          <ol class="mt-5 space-y-6">
+            {d.historial.map((h) => (
+              <li class="relative border-l-2 border-linea pl-5">
+                <span class="absolute top-1.5 -left-[5px] size-2 rounded-full bg-tinta" aria-hidden="true" />
+                <time class="cifras block text-[13px] text-gris" datetime={h.fecha.toISOString()}>
+                  {formatearFechaHora(h.fecha)}
+                </time>
+                <p class="mt-0.5 text-[15px] leading-snug">{describirEntradaPublica(h)}</p>
+                {h.motivo && <p class="mt-1 text-sm text-gris">{h.motivo}</p>}
+              </li>
+            ))}
+          </ol>
+        )
+      }
+      <a href="/" class="btn-fantasma mt-10 -ml-4"><Icono svg={volver} tamano={18} /> Volver al listado</a>
+    </aside>
+  </div>
+</Publico>

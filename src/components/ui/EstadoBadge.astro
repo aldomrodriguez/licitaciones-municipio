@@ -1,0 +1,30 @@
+---
+import { ESTADOS, type Estado, type Tono } from '../../lib/estados';
+
+interface Props {
+  estado: Estado;
+  tamano?: 'sm' | 'md';
+}
+const { estado, tamano = 'sm' } = Astro.props;
+const def = ESTADOS[estado];
+
+const TONOS: Record<Tono, string> = {
+  neutro: 'bg-neutro-fondo text-neutro',
+  abierto: 'bg-rojo text-white',
+  proceso: 'bg-proceso-fondo text-proceso',
+  exito: 'bg-exito-fondo text-exito',
+  alerta: 'bg-alerta-fondo text-alerta',
+  peligro: 'bg-peligro-fondo text-peligro',
+};
+---
+
+<span
+  class:list={[
+    'inline-flex items-center gap-1.5 rounded-full font-semibold whitespace-nowrap',
+    tamano === 'sm' ? 'px-2.5 py-0.5 text-xs' : 'px-3 py-1 text-sm',
+    TONOS[def.tono],
+  ]}
+>
+  {def.tono === 'abierto' && <span class="size-1.5 rounded-full bg-white" aria-hidden="true" />}
+  {def.nombre}
+</span>

@@ -1,0 +1,108 @@
+---
+import type { Adjudicacion } from '../../lib/db/schema';
+import { formatearMonto } from '../../lib/formato';
+import Icono from '../ui/Icono.astro';
+import quitar from '@tabler/icons/outline/x.svg?raw';
+
+interface Props {
+  procedimientoId: number;
+  lista: Adjudicacion[];
+  total: number;
+  editable: boolean;
+  /** Explicación de por qué no se pueden cargar ahora (si no es editable). */
+  aviso?: string | undefined;
+}
+const { procedimientoId, lista, total, editable, aviso } = Astro.props;
+---
+
+<section aria-labelledby="t-adj" class="rounded-lg border border-linea bg-white p-5 sm:p-6">
+  <h2 id="t-adj" class="text-lg font-bold">Adjudicatarios</h2>
+  {
+    lista.length === 0 ? (
+      <p class="mt-2 text-sm text-gris">{editable ? 'Sin adjudicatarios. Cargalos antes de pasar a «Adjudicada».' : 'Sin adjudicatarios.'}</p>
+    ) : (
+      <table class="cifras mt-4 w-full text-left text-sm">
+        <caption class="sr-only">Adjudicatarios cargados</caption>
+        <thead class="border-b border-tinta text-[13px] text-gris">
+          <tr>
+            <th scope="col" class="py-2 font-semibold">Proveedor</th>
+            <th scope="col" class="py-2 font-semibold">CUIT</th>
+            <th scope="col" class="py-2 text-right font-semibold">Monto</th>
+            {editable && <th scope="col"><span class="sr-only">Acciones</span></th>}
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-linea">
+          {lista.map((a) => (
+            <tr>
+              <td class="py-2.5 pr-3">{a.proveedor}</td>
+              <td class="py-2.5 pr-3 text-gris">{a.cuit ?? '—'}</td>
+              <td class="py-2.5 text-right whitespace-nowrap">{a.monto == null ? <span class="text-gris">No informado</span> : formatearMonto(a.monto)}</td>
+              {editable && (
+                <td class="w-10 py-1 text-right">
+                  <form
+                    method="post"
+                    data-accion="quitarAdjudicacion"
+                    data-titulo={`¿Quitar a ${a.proveedor}?`}
+                    data-detalle={`Monto: ${formatearMonto(a.monto)}. El total adjudicado pasa a ser ${formatearMonto(total - (a.monto ?? 0))}.|Queda registrado en el historial.`}
+                    data-tono="peligro"
+                    data-boton="Quitar adjudicatario"
+                    data-exito="Adjudicatario quitado."
+                  >
+                    <input type="hidden" name="adjudicacionId" value={a.id} />
+                    <button type="submit" class="btn-fantasma p-2" aria-label={`Quitar a ${a.proveedor}`}>
+                      <Icono svg={quitar} tamano={16} />
+                    </button>
+                  </form>
+                </td>
+              )}
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr class="border-t-2 border-tinta">
+            <th scope="row" colspan="2" class="py-2.5 font-bold">Total adjudicado</th>
+            <td class="py-2.5 text-right font-bold whitespace-nowrap">{formatearMonto(total)}</td>
+            {editable && <td />}
+          </tr>
+        </tfoot>
+      </table>
+    )
+  }
+
+  {aviso && <p class="mt-4 text-sm text-gris">{aviso}</p>}
+  {editable && lista.length > 0 && <p class="mt-3 text-[13px] text-gris">Se publican recién cuando el procedimiento pasa a «Adjudicada».</p>}
+
+  {
+    editable && (
+      <details class="group mt-5 rounded-md border border-linea" open={lista.length === 0}>
+        <summary class="cursor-pointer px-4 py-3 text-sm font-semibold text-rojo">Agregar adjudicatario</summary>
+        <form
+          method="post"
+          class="grid gap-3 border-t border-linea p-4 sm:grid-cols-[1.6fr_1fr_1fr_auto] sm:items-end"
+          data-accion="agregarAdjudicacion"
+          data-diff
+          data-titulo="¿Agregar el adjudicatario?"
+          data-detalle={`Total adjudicado actual: ${formatearMonto(total)}. Se suma el monto de este proveedor.`}
+          data-boton="Agregar"
+          data-exito="Adjudicatario agregado."
+        >
+          <input type="hidden" name="id" value={procedimientoId} />
+          <div>
+            <label for="adj-proveedor" class="etiqueta">Proveedor</label>
+            <input id="adj-proveedor" name="proveedor" required minlength="2" class="campo" data-etiqueta="Proveedor" />
+          </div>
+          <div>
+            <label for="adj-cuit" class="etiqueta">CUIT</label>
+            <input id="adj-cuit" name="cuit" required inputmode="numeric" autocomplete="off" maxlength="13" placeholder="30-12345678-1" class="campo cifras" data-etiqueta="CUIT" data-cuit aria-describedby="adj-cuit-ayuda" />
+          </div>
+          <div>
+            <label for="adj-monto" class="etiqueta">Monto</label>
+            <input id="adj-monto" name="monto" required inputmode="decimal" placeholder="0,00" class="campo cifras" data-etiqueta="Monto" />
+          </div>
+          <button type="submit" class="btn-primario">Agregar</button>
+          <p id="adj-cuit-ayuda" class="ayuda -mt-1 sm:col-span-4">CUIT: escribí solo los números, los guiones se ponen solos.</p>
+        </form>
+      </details>
+    )
+  }
+</section>

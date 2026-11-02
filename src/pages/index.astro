@@ -1,0 +1,171 @@
+---
+import Publico from '../layouts/Publico.astro';
+import LlamadoAbierto from '../components/publico/LlamadoAbierto.astro';
+import FilaProcedimiento from '../components/publico/FilaProcedimiento.astro';
+import Icono from '../components/ui/Icono.astro';
+import buscar from '@tabler/icons/outline/search.svg?raw';
+import { db } from '../lib/db';
+import { aniosDisponibles, listarPublico, llamadosAbiertos } from '../lib/procedimientos';
+import { ESTADOS, LISTA_TIPOS, TIPOS, esEstado, esTipo } from '../lib/estados';
+import { MODALIDADES, QUE_ES, VIGENCIA_MONTOS } from '../lib/contenido';
+import marca from '../components/marca/marca.json';
+
+const params = Astro.url.searchParams;
+const tipo = esTipo(params.get('tipo') ?? '') ? (params.get('tipo') as keyof typeof TIPOS) : undefined;
+const estadoParam = params.get('estado') ?? '';
+const estado = esEstado(estadoParam) && estadoParam !== 'borrador' ? estadoParam : undefined;
+const anioNum = Number(params.get('anio'));
+const anio = Number.isInteger(anioNum) && anioNum > 2000 ? anioNum : undefined;
+const q = params.get('q')?.slice(0, 100) ?? '';
+const filtrando = Boolean(tipo || estado || anio || q);
+
+const conexion = db();
+const abiertos = llamadosAbiertos(conexion);
+const anios = aniosDisponibles(conexion, true);
+const filas = listarPublico(conexion, { tipo, estado, anio, q });
+
+const porAnio = new Map<number, typeof filas>();
+for (const f of filas) {
+  const lista = porAnio.get(f.p.anio) ?? [];
+  lista.push(f);
+  porAnio.set(f.p.anio, lista);
+}
+const estadosFiltro = (['llamado', 'evaluacion', 'tramite', 'adjudicada', 'desierta', 'fracasada', 'anulada'] as const).map((e) => ({
+  valor: e,
+  nombre: ESTADOS[e].nombre,
+}));
+---
+
+<Publico titulo="Licitaciones" descripcion="Llamados abiertos, aperturas y adjudicaciones de licitaciones públicas, privadas y concursos de precios del Municipio de Lobos.">
+  <section class="relative overflow-hidden bg-rojo text-white">
+    <div class="pointer-events-none absolute -top-36 right-[3vw] rotate-[-7deg] text-[390px] leading-none font-black text-white/[.075] select-none" aria-hidden="true">
+      L
+    </div>
+    <div class="contenedor relative pt-12 pb-14 sm:pt-16 sm:pb-[75px]">
+      <nav aria-label="Ubicación" class="mb-10 text-xs text-white sm:mb-14">
+        <ol class="flex flex-wrap items-center gap-2.5">
+          <li><a href={marca.inicio} class="underline-offset-2 hover:underline">Inicio</a></li>
+          <li aria-hidden="true">›</li>
+          <li><a href={marca.nav[1]?.href} class="underline-offset-2 hover:underline">Municipio</a></li>
+          <li aria-hidden="true">›</li>
+          <li><b class="text-white" aria-current="page">Licitaciones</b></li>
+        </ol>
+      </nav>
+      <h1 class="text-[44px] leading-none font-bold tracking-[-.045em] sm:text-[clamp(44px,6vw,72px)]">Licitaciones y concursos</h1>
+      <p class="mt-5 max-w-[660px] text-lg leading-normal text-[#ffe8e9]">{QUE_ES}</p>
+    </div>
+  </section>
+
+  <section aria-labelledby="titulo-abiertos" class="bg-papel">
+    <div class="contenedor py-12 sm:py-16">
+      <div class="grid gap-8 lg:grid-cols-[280px_1fr] lg:gap-16">
+        <div>
+          <h2 id="titulo-abiertos" class="text-[29px] leading-tight font-bold tracking-[-.035em] sm:text-[35px]">Llamados abiertos</h2>
+          <p class="mt-3 leading-relaxed text-gris">
+            Licitaciones públicas que reciben ofertas. El pliego y las circulares se descargan desde cada llamado.
+          </p>
+        </div>
+        <div class="self-start rounded-xl border border-linea bg-white px-5 sm:px-8">
+          {
+            abiertos.length > 0 ? (
+              abiertos.map((p) => <LlamadoAbierto p={p} />)
+            ) : (
+              <p class="py-8 text-gris">
+                No hay llamados abiertos en este momento. Cuando se abra uno nuevo va a aparecer acá con su fecha de apertura y el pliego.
+              </p>
+            )
+          }
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="titulo-listado">
+    <div class="contenedor py-12 sm:py-16">
+      <div class="flex flex-wrap items-end justify-between gap-4">
+        <h2 id="titulo-listado" class="text-[29px] leading-tight font-bold tracking-[-.035em] sm:text-[35px]">Todos los procedimientos</h2>
+        <details class="group text-sm">
+          <summary class="cursor-pointer font-semibold text-rojo hover:underline">¿Qué diferencia hay entre las modalidades?</summary>
+          <dl class="mt-4 grid max-w-[720px] gap-4 rounded-lg border border-linea bg-white p-5 text-[15px] leading-relaxed">
+            {
+              LISTA_TIPOS.map((t) => (
+                <div>
+                  <dt class="font-bold">{TIPOS[t].nombre}</dt>
+                  <dd class="text-gris">{MODALIDADES[t]}</dd>
+                </div>
+              ))
+            }
+            <p class="text-[13px] text-gris">Montos vigentes desde {VIGENCIA_MONTOS}.</p>
+          </dl>
+        </details>
+      </div>
+
+      <form method="get" action="/#titulo-listado" class="mt-7 grid gap-3 rounded-lg bg-papel p-4 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr_auto]" data-filtros>
+        <div>
+          <label for="f-q" class="etiqueta">Buscar</label>
+          <div class="relative">
+            <span class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-gris"><Icono svg={buscar} tamano={18} /></span>
+            <input id="f-q" name="q" type="search" value={q} placeholder="Objeto o número, ej. 7/2026" class="campo pl-9" />
+          </div>
+        </div>
+        <div>
+          <label for="f-tipo" class="etiqueta">Modalidad</label>
+          <select id="f-tipo" name="tipo" class="campo">
+            <option value="">Todas</option>
+            {LISTA_TIPOS.map((t) => <option value={t} selected={t === tipo}>{TIPOS[t].nombre}</option>)}
+          </select>
+        </div>
+        <div>
+          <label for="f-estado" class="etiqueta">Estado</label>
+          <select id="f-estado" name="estado" class="campo">
+            <option value="">Todos</option>
+            {estadosFiltro.map((e) => <option value={e.valor} selected={e.valor === estado}>{e.nombre}</option>)}
+          </select>
+        </div>
+        <div>
+          <label for="f-anio" class="etiqueta">Año</label>
+          <select id="f-anio" name="anio" class="campo">
+            <option value="">Todos</option>
+            {anios.map((a) => <option value={a} selected={a === anio}>{a}</option>)}
+          </select>
+        </div>
+        <div class="flex items-end gap-2">
+          <button type="submit" class="btn-primario w-full lg:w-auto">Filtrar</button>
+          {filtrando && <a href="/#titulo-listado" class="btn-fantasma">Limpiar</a>}
+        </div>
+      </form>
+
+      <p class="mt-6 text-sm text-gris" role="status">
+        {filas.length === 1 ? '1 procedimiento' : `${filas.length} procedimientos`}{filtrando ? ' con esos filtros' : ''}.
+      </p>
+
+      {
+        filas.length === 0 ? (
+          <div class="mt-6 rounded-lg border border-dashed border-linea p-8 text-center">
+            <p class="font-semibold">No hay procedimientos que coincidan.</p>
+            <p class="mt-1 text-gris">Probá con otra palabra o quitá algún filtro.</p>
+          </div>
+        ) : (
+          [...porAnio.entries()].map(([a, lista]) => (
+            <section aria-labelledby={`anio-${a}`} class="mt-8">
+              <h3 id={`anio-${a}`} class="cifras sticky top-0 z-10 border-b-2 border-tinta bg-white py-2 text-lg font-bold">
+                {a}
+              </h3>
+              <ul>
+                {lista.map((f) => (
+                  <FilaProcedimiento p={f.p} total={f.total} adjudicatarios={f.adjudicatarios} />
+                ))}
+              </ul>
+            </section>
+          ))
+        )
+      }
+    </div>
+  </section>
+</Publico>
+
+<script>
+  // Con JS, los selects filtran al cambiar; sin JS queda el botón «Filtrar».
+  const form = document.querySelector<HTMLFormElement>('[data-filtros]');
+  form?.querySelectorAll('select').forEach((s) => s.addEventListener('change', () => form.requestSubmit()));
+</script>

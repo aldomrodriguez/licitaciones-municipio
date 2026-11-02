@@ -1,0 +1,47 @@
+---
+/** Pasos del procedimiento según la modalidad, marcando dónde está. */
+import type { Tipo } from '../../lib/db/schema';
+import { ESTADOS, type Estado } from '../../lib/estados';
+
+interface Props {
+  tipo: Tipo;
+  estado: Estado;
+}
+const { tipo, estado } = Astro.props;
+const camino: Estado[] = tipo === 'publica' ? ['llamado', 'evaluacion'] : ['tramite'];
+const cierre: Estado = ESTADOS[estado].final ? estado : 'adjudicada';
+const pasos = [...camino, cierre];
+const actual = pasos.indexOf(estado);
+const cortado = ESTADOS[estado].final && estado !== 'adjudicada';
+---
+
+<ol class="grid gap-3 sm:flex sm:gap-0" aria-label="Etapas del procedimiento">
+  {
+    pasos.map((p, i) => {
+      const hecho = i < actual;
+      const ahora = i === actual;
+      return (
+        <li class="flex flex-1 items-center gap-3 sm:flex-col sm:items-start sm:gap-2">
+          <div class="flex w-auto items-center sm:w-full">
+            <span
+              class:list={[
+                'cifras grid size-8 shrink-0 place-items-center rounded-full border-2 text-sm font-bold',
+                hecho && 'border-tinta bg-tinta text-white',
+                ahora && !cortado && 'border-rojo bg-rojo text-white',
+                ahora && cortado && 'border-peligro bg-peligro text-white',
+                !hecho && !ahora && 'border-linea bg-white text-gris',
+              ]}
+            >
+              {i + 1}
+            </span>
+            {i < pasos.length - 1 && <span class:list={['hidden h-0.5 flex-1 sm:block', hecho ? 'bg-tinta' : 'bg-linea']} aria-hidden="true" />}
+          </div>
+          <span class:list={['text-sm', ahora ? 'font-bold text-tinta' : 'text-gris']}>
+            {ESTADOS[p].nombre}
+            {ahora && <span class="sr-only"> (etapa actual)</span>}
+          </span>
+        </li>
+      );
+    })
+  }
+</ol>

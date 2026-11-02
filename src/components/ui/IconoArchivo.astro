@@ -1,0 +1,25 @@
+---
+import pdf from '@tabler/icons/outline/file-type-pdf.svg?raw';
+import foto from '@tabler/icons/outline/photo.svg?raw';
+import planilla from '@tabler/icons/outline/file-spreadsheet.svg?raw';
+import texto from '@tabler/icons/outline/file-text.svg?raw';
+import zip from '@tabler/icons/outline/file-zip.svg?raw';
+import Icono from './Icono.astro';
+
+interface Props {
+  mime: string;
+  tamano?: number;
+}
+const { mime, tamano = 24 } = Astro.props;
+const svg = mime === 'application/pdf'
+  ? pdf
+  : mime.startsWith('image/')
+    ? foto
+    : /sheet|excel/.test(mime)
+      ? planilla
+      : mime === 'application/zip'
+        ? zip
+        : texto;
+---
+
+<Icono svg={svg} tamano={tamano} />

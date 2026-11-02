@@ -1,0 +1,21 @@
+---
+/**
+ * Ícono de Tabler. Se importa cada SVG explícitamente:
+ *   import descarga from '@tabler/icons/outline/download.svg?raw';
+ *   <Icono svg={descarga} />
+ */
+interface Props {
+  svg: string;
+  tamano?: number;
+  /** Si el ícono transmite información por sí solo; si no, queda oculto a lectores de pantalla. */
+  etiqueta?: string;
+  class?: string;
+}
+const { svg, tamano = 20, etiqueta, class: clase = '' } = Astro.props;
+const atributos = etiqueta ? `role="img" aria-label="${etiqueta}"` : 'aria-hidden="true" focusable="false"';
+const html = svg
+  .replace(/\s(width|height|class)="[^"]*"/g, '')
+  .replace('<svg', `<svg width="${tamano}" height="${tamano}" class="shrink-0 ${clase}" ${atributos}`);
+---
+
+<Fragment set:html={html} />

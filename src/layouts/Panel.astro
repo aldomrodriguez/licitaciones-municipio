@@ -1,0 +1,89 @@
+---
+import '../styles/global.css';
+import ConfirmDialog from '../components/panel/ConfirmDialog.astro';
+import Icono from '../components/ui/Icono.astro';
+import iconoLista from '@tabler/icons/outline/list-details.svg?raw';
+import iconoPapelera from '@tabler/icons/outline/trash.svg?raw';
+import iconoUsuarios from '@tabler/icons/outline/users.svg?raw';
+import iconoSalir from '@tabler/icons/outline/logout.svg?raw';
+import iconoSitio from '@tabler/icons/outline/external-link.svg?raw';
+
+interface Props {
+  titulo: string;
+}
+const { titulo } = Astro.props;
+const usuario = Astro.locals.usuario!;
+const ruta = Astro.url.pathname;
+const secciones = [
+  { href: '/panel', texto: 'Procedimientos', icono: iconoLista, activo: ruta === '/panel' || ruta.startsWith('/panel/procedimientos') || ruta === '/panel/nuevo' },
+  { href: '/panel/papelera', texto: 'Papelera', icono: iconoPapelera, activo: ruta.startsWith('/panel/papelera') },
+  ...(usuario.rol === 'admin'
+    ? [{ href: '/panel/usuarios', texto: 'Usuarios', icono: iconoUsuarios, activo: ruta.startsWith('/panel/usuarios') }]
+    : []),
+];
+---
+
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>{titulo} | Panel de licitaciones</title>
+    <link rel="icon" href="/favicon.png" />
+    <link rel="preload" href="/fonts/geist.woff2" as="font" type="font/woff2" crossorigin />
+  </head>
+  <body class="flex min-h-dvh flex-col bg-papel">
+    <a href="#contenido" class="sr-only z-50 rounded bg-white px-4 py-2 font-semibold focus:not-sr-only focus:fixed focus:top-2 focus:left-2">
+      Ir al contenido
+    </a>
+    <header class="border-b-4 border-rojo bg-tinta text-white">
+      <div class="contenedor flex min-h-16 flex-wrap items-center gap-x-6 gap-y-2 py-2">
+        <a href="/panel" class="flex items-center gap-3">
+          <img src="/marca/logo-municipio-lobos.png" alt="Municipio de Lobos" width="82" height="48" class="h-10 w-auto" />
+          <span class="border-l border-white/25 pl-3 text-sm leading-tight font-semibold">Licitaciones<br /><span class="font-normal text-white/65">Panel de carga</span></span>
+        </a>
+        <nav aria-label="Secciones del panel" class="order-last flex w-full gap-1 overflow-x-auto sm:order-none sm:w-auto">
+          {
+            secciones.map((s) => (
+              <a
+                href={s.href}
+                aria-current={s.activo ? 'page' : undefined}
+                class:list={[
+                  'flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold whitespace-nowrap',
+                  s.activo ? 'bg-white/12 text-white' : 'text-white/70 hover:bg-white/8 hover:text-white',
+                ]}
+              >
+                <Icono svg={s.icono} tamano={18} />
+                {s.texto}
+              </a>
+            ))
+          }
+        </nav>
+        <div class="ml-auto flex items-center gap-1 text-sm">
+          <a href="/" target="_blank" class="hidden items-center gap-1.5 rounded-md px-3 py-2 text-white/70 hover:text-white md:flex">
+            <Icono svg={iconoSitio} tamano={16} /> Ver sitio público
+          </a>
+          <a href="/panel/cuenta" class="rounded-md px-3 py-2 text-white/85 hover:bg-white/8 hover:text-white" title="Mi cuenta">
+            {usuario.nombre}{usuario.rol === 'admin' && <span class="ml-1 text-white/55">(admin)</span>}
+          </a>
+          <form method="post" action="/panel/salir">
+            <button type="submit" class="flex items-center gap-1.5 rounded-md px-3 py-2 text-white/70 hover:bg-white/8 hover:text-white">
+              <Icono svg={iconoSalir} tamano={18} /> Salir
+            </button>
+          </form>
+        </div>
+      </div>
+    </header>
+    <main id="contenido" class="contenedor flex-1 py-8 sm:py-10">
+      <slot />
+    </main>
+    <ConfirmDialog />
+    <script>
+      import { iniciarFormularios } from '../scripts/formularios';
+      import { mejorarControles } from '../scripts/controles';
+      mejorarControles();
+      iniciarFormularios();
+    </script>
+  </body>
+</html>

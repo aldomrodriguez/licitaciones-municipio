@@ -1,0 +1,194 @@
+---
+/**
+ * Formulario de alta y edición. Qué campos se muestran depende de la modalidad, y cuáles
+ * se pueden editar depende de la etapa (reglas en lib/estados.ts). Los bloqueados quedan
+ * en solo lectura con la explicación al lado; el servidor los rechaza igual.
+ */
+import type { Procedimiento } from '../../lib/db/schema';
+import { LISTA_TIPOS, TIPOS, motivoBloqueo, reglasEtapa, type CampoEtapa, type Estado, type Rol } from '../../lib/estados';
+import { aFechaInput, montoAInput } from '../../lib/formato';
+import Icono from '../ui/Icono.astro';
+import candado from '@tabler/icons/outline/lock.svg?raw';
+
+interface Props {
+  p?: Procedimiento;
+  estado?: Estado;
+  rol: Rol;
+  /** Próximo número sugerido por modalidad para el año en curso (solo alta). */
+  siguientes?: Record<string, number>;
+}
+const { p, estado = 'borrador', rol, siguientes = {} } = Astro.props;
+const edicion = Boolean(p);
+const tipo = p?.tipo ?? 'publica';
+const publicado = estado !== 'borrador';
+const anioActual = new Date().getFullYear();
+const reglas = reglasEtapa(tipo, estado, rol);
+const bloqueado = (c: CampoEtapa) => !reglas.campos.has(c);
+const nota = (c: CampoEtapa) => (bloqueado(c) ? motivoBloqueo(tipo, estado, c) : null);
+const solo = (tipos: string[]) => (tipos.includes(tipo) ? undefined : true);
+const claseCampo = (c: CampoEtapa) => (bloqueado(c) ? 'campo cifras cursor-not-allowed bg-papel text-gris' : 'campo cifras');
+const todoBloqueado = [...reglas.camposModalidad].every((c) => c === 'observacionesPublicas' || bloqueado(c));
+---
+
+<form
+  method="post"
+  class="space-y-8"
+  data-accion={edicion ? 'actualizarProcedimiento' : 'crearProcedimiento'}
+  data-diff
+  data-prorroga={publicado ? 'si' : undefined}
+  data-titulo={edicion ? '¿Guardar los cambios?' : '¿Crear el procedimiento?'}
+  data-detalle={edicion
+    ? 'Estos son los campos que cambiaste. Cada cambio queda registrado en el historial con tu nombre.'
+    : 'Se crea como borrador: no aparece en el sitio público hasta que cambies el estado.'}
+  data-boton={edicion ? 'Guardar cambios' : 'Crear borrador'}
+  data-exito={edicion ? 'Cambios guardados.' : 'Procedimiento creado como borrador.'}
+  data-ir={edicion ? undefined : '/panel/procedimientos/{id}'}
+  data-form-procedimiento
+  data-siguientes={JSON.stringify(siguientes)}
+>
+  {p && <input type="hidden" name="id" value={p.id} />}
+
+  {
+    todoBloqueado && (
+      <p class="flex items-start gap-2 rounded-lg border border-linea bg-white p-4 text-sm text-gris">
+        <Icono svg={candado} tamano={18} class="mt-0.5" />
+        Los datos están bloqueados porque el procedimiento está cerrado. Podés agregar observaciones y documentación.
+      </p>
+    )
+  }
+
+  <fieldset class="rounded-lg border border-linea bg-white p-5 sm:p-6">
+    <legend class="float-left mb-5 w-full text-lg font-bold">Identificación</legend>
+    <div class="clear-both grid gap-5 sm:grid-cols-[1.4fr_.8fr_.8fr]">
+      <div>
+        <label for="tipo" class="etiqueta">Modalidad</label>
+        {
+          edicion ? (
+            <>
+              <input type="hidden" name="tipo" value={tipo} />
+              <p id="tipo" class="campo bg-papel text-gris">{TIPOS[tipo].nombre}</p>
+              <p class="ayuda">La modalidad no se cambia una vez creado.</p>
+            </>
+          ) : (
+            <select id="tipo" name="tipo" class="campo" required data-etiqueta="Modalidad">
+              {LISTA_TIPOS.map((t) => <option value={t} selected={t === tipo}>{TIPOS[t].nombre}</option>)}
+            </select>
+          )
+        }
+      </div>
+      <div>
+        <label for="numero" class="etiqueta">Número</label>
+        <input id="numero" name="numero" type="number" min="1" required inputmode="numeric" value={p?.numero ?? siguientes[tipo]} readonly={bloqueado('numero')} aria-describedby={nota('numero') ? 'n-numero' : undefined} class={claseCampo('numero')} data-etiqueta="Número" />
+        {nota('numero') && <p id="n-numero" class="ayuda">{nota('numero')}</p>}
+      </div>
+      <div>
+        <label for="anio" class="etiqueta">Año</label>
+        <input id="anio" name="anio" type="number" min="2000" max="2100" required value={p?.anio ?? anioActual} readonly={bloqueado('anio')} aria-describedby={nota('anio') ? 'n-anio' : undefined} class={claseCampo('anio')} data-etiqueta="Año" />
+        {nota('anio') && <p id="n-anio" class="ayuda">{nota('anio')}</p>}
+      </div>
+    </div>
+    {
+      edicion && rol === 'admin' && publicado && (
+        <p class="mt-3 text-[13px] text-proceso">Como administrador podés corregir número y año, pero cambia la dirección pública del procedimiento.</p>
+      )
+    }
+    <div class="mt-5">
+      <label for="objeto" class="etiqueta">Objeto</label>
+      <textarea id="objeto" name="objeto" rows="3" required minlength="5" readonly={bloqueado('objeto')} class={bloqueado('objeto') ? 'campo cursor-not-allowed bg-papel text-gris' : 'campo'} data-etiqueta="Objeto" aria-describedby="objeto-ayuda">{p?.objeto}</textarea>
+      <p id="objeto-ayuda" class="ayuda">{nota('objeto') ?? 'Qué se compra o contrata, tal como figura en el pliego o el decreto.'}</p>
+    </div>
+    <div class="mt-5">
+      <label for="areaSolicitante" class="etiqueta">Área solicitante <span class="font-normal text-gris">(opcional)</span></label>
+      <input id="areaSolicitante" name="areaSolicitante" type="text" value={p?.areaSolicitante ?? ''} readonly={bloqueado('areaSolicitante')} class={bloqueado('areaSolicitante') ? 'campo cursor-not-allowed bg-papel text-gris' : 'campo'} data-etiqueta="Área solicitante" />
+    </div>
+  </fieldset>
+
+  <fieldset class="rounded-lg border border-linea bg-white p-5 sm:p-6">
+    <legend class="float-left mb-5 w-full text-lg font-bold">Montos, apertura y ofertas</legend>
+    <div class="clear-both grid gap-5 sm:grid-cols-2">
+      <div>
+        <label for="presupuestoOficial" class="etiqueta">Presupuesto oficial</label>
+        <div class="relative">
+          <span class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-gris" aria-hidden="true">$</span>
+          <input id="presupuestoOficial" name="presupuestoOficial" type="text" inputmode="decimal" value={montoAInput(p?.presupuestoOficial)} placeholder="0,00" readonly={bloqueado('presupuestoOficial')} aria-describedby={nota('presupuestoOficial') ? 'n-presupuesto' : undefined} class={`${claseCampo('presupuestoOficial')} pl-7`} data-etiqueta="Presupuesto oficial" data-monto />
+        </div>
+        {nota('presupuestoOficial') && <p id="n-presupuesto" class="ayuda">{nota('presupuestoOficial')}</p>}
+      </div>
+      <div data-solo="publica" hidden={solo(['publica'])}>
+        <label for="valorPliego" class="etiqueta">Valor del pliego</label>
+        <div class="relative">
+          <span class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-gris" aria-hidden="true">$</span>
+          <input id="valorPliego" name="valorPliego" type="text" inputmode="decimal" value={montoAInput(p?.valorPliego)} placeholder="0,00" readonly={bloqueado('valorPliego')} aria-describedby={nota('valorPliego') ? 'n-pliego' : undefined} class={`${claseCampo('valorPliego')} pl-7`} data-etiqueta="Valor del pliego" data-monto />
+        </div>
+        {nota('valorPliego') && <p id="n-pliego" class="ayuda">{nota('valorPliego')}</p>}
+      </div>
+      <div>
+        <label for="fechaApertura" class="etiqueta">Fecha de apertura</label>
+        <input id="fechaApertura" name="fechaApertura" type="text" hidden data-fecha value={aFechaInput(p?.fechaApertura)} readonly={bloqueado('fechaApertura')} data-etiqueta="Fecha de apertura" aria-describedby="fecha-ayuda" />
+        <p id="fecha-ayuda" class="ayuda">
+          {nota('fechaApertura') ??
+            (estado === 'llamado'
+              ? 'Si la movés, se publica como prórroga.'
+              : estado !== 'borrador'
+                ? 'Fecha en que se abrieron las ofertas.'
+                : tipo === 'publica'
+                  ? 'Obligatoria y futura para abrir el llamado.'
+                  : 'Cuándo se abrieron o se abren las ofertas.')}
+        </p>
+      </div>
+      <div data-solo="publica" hidden={solo(['publica'])}>
+        <label for="lugarApertura" class="etiqueta">Lugar de apertura</label>
+        <input id="lugarApertura" name="lugarApertura" type="text" value={p?.lugarApertura ?? ''} placeholder="Ej. Oficina de Compras, Salgado 40" readonly={bloqueado('lugarApertura')} aria-describedby={nota('lugarApertura') ? 'n-lugar' : undefined} class={bloqueado('lugarApertura') ? 'campo cursor-not-allowed bg-papel text-gris' : 'campo'} data-etiqueta="Lugar de apertura" />
+        {nota('lugarApertura') && <p id="n-lugar" class="ayuda">{nota('lugarApertura')}</p>}
+      </div>
+      <div data-solo="privada concurso" hidden={solo(['privada', 'concurso'])}>
+        <label for="invitados" class="etiqueta">Proveedores invitados</label>
+        <input id="invitados" name="invitados" type="number" min="0" inputmode="numeric" value={p?.invitados ?? ''} readonly={bloqueado('invitados')} aria-describedby={nota('invitados') ? 'n-invitados' : undefined} class={claseCampo('invitados')} data-etiqueta="Invitados" />
+        {nota('invitados') && <p id="n-invitados" class="ayuda">{nota('invitados')}</p>}
+      </div>
+      <div>
+        <label for="cantidadOfertantes" class="etiqueta">Ofertas recibidas</label>
+        <input id="cantidadOfertantes" name="cantidadOfertantes" type="number" min="0" inputmode="numeric" value={p?.cantidadOfertantes ?? ''} readonly={bloqueado('cantidadOfertantes')} aria-describedby={nota('cantidadOfertantes') ? 'n-ofertas' : undefined} class={claseCampo('cantidadOfertantes')} data-etiqueta="Cantidad de ofertantes" />
+        {nota('cantidadOfertantes') && <p id="n-ofertas" class="ayuda">{nota('cantidadOfertantes')}</p>}
+      </div>
+    </div>
+    <div class="mt-5">
+      <label for="observacionesPublicas" class="etiqueta">Observaciones públicas <span class="font-normal text-gris">(opcional)</span></label>
+      <textarea id="observacionesPublicas" name="observacionesPublicas" rows="2" class="campo" data-etiqueta="Observaciones" aria-describedby="obs-ayuda">{p?.observacionesPublicas}</textarea>
+      <p id="obs-ayuda" class="ayuda">Se muestran en el sitio. Por ejemplo, ampliaciones o aclaraciones.</p>
+    </div>
+  </fieldset>
+
+  <div class="sticky bottom-0 z-10 -mx-4 flex justify-end gap-2 border-t border-linea bg-papel/95 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-lg sm:border">
+    {!edicion && <a href="/panel" class="btn-fantasma">Cancelar</a>}
+    <button type="submit" class="btn-primario">{edicion ? 'Guardar cambios' : 'Crear borrador'}</button>
+  </div>
+</form>
+
+<script>
+  for (const form of document.querySelectorAll<HTMLFormElement>('[data-form-procedimiento]')) {
+    const tipo = form.querySelector<HTMLSelectElement>('select[name="tipo"]');
+    const numero = form.querySelector<HTMLInputElement>('input[name="numero"]');
+    const siguientes: Record<string, number> = JSON.parse(form.dataset.siguientes ?? '{}');
+    tipo?.addEventListener('change', () => {
+      for (const el of form.querySelectorAll<HTMLElement>('[data-solo]')) {
+        el.hidden = !(el.dataset.solo ?? '').split(' ').includes(tipo.value);
+      }
+      const sugerido = siguientes[tipo.value];
+      if (numero && sugerido) numero.value = String(sugerido);
+      const ofertas = form.querySelector<HTMLElement>('#n-ofertas');
+      if (ofertas) ofertas.textContent = `Se completa desde «${tipo.value === 'publica' ? 'En evaluación' : 'En trámite de adjudicación'}».`;
+      const ayuda = form.querySelector<HTMLElement>('#fecha-ayuda');
+      if (ayuda) ayuda.textContent = tipo.value === 'publica' ? 'Obligatoria y futura para abrir el llamado.' : 'Cuándo se abrieron o se abren las ofertas.';
+    });
+    // Formatea los montos al salir del campo: 1234567,8 → 1.234.567,80
+    for (const input of form.querySelectorAll<HTMLInputElement>('[data-monto]:not([readonly])')) {
+      input.addEventListener('blur', () => {
+        const limpio = input.value.replace(/[$\s.]/g, '').replace(',', '.');
+        if (!limpio || Number.isNaN(Number(limpio))) return;
+        input.value = Number(limpio).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+    }
+  }
+</script>

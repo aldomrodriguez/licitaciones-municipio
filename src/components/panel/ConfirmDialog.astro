@@ -1,0 +1,60 @@
+---
+/**
+ * Diálogo único de confirmación del panel. Lo maneja src/scripts/confirmar.ts.
+ * Nunca usar confirm() ni alert().
+ */
+import alerta from '@tabler/icons/outline/alert-triangle.svg?raw';
+import info from '@tabler/icons/outline/info-circle.svg?raw';
+import Icono from '../ui/Icono.astro';
+---
+
+<dialog
+  id="dlg-confirmar"
+  aria-labelledby="dlg-titulo"
+  aria-describedby="dlg-detalle"
+  class="m-auto w-[min(560px,calc(100%-32px))] rounded-xl bg-white p-0 text-tinta shadow-2xl backdrop:backdrop-blur-[1px] open:animate-[aparecer_.16s_ease-out]"
+>
+  <form method="dialog" class="p-6 sm:p-7" novalidate>
+    <div class="flex items-start gap-4">
+      <span id="dlg-icono" class="grid size-11 shrink-0 place-items-center rounded-full bg-neutro-fondo text-tinta" aria-hidden="true">
+        <span data-icono="normal"><Icono svg={info} tamano={24} /></span>
+        <span data-icono="peligro" hidden><Icono svg={alerta} tamano={24} /></span>
+      </span>
+      <div class="min-w-0 flex-1">
+        <h2 id="dlg-titulo" class="text-lg leading-snug font-bold"></h2>
+        <div id="dlg-detalle" class="mt-2 space-y-2 text-[15px] leading-relaxed text-gris"></div>
+      </div>
+    </div>
+
+    <ul id="dlg-lista" class="cifras mt-5 max-h-[40vh] space-y-2 overflow-auto rounded-lg border border-linea bg-papel p-3 text-sm" hidden></ul>
+
+    <div id="dlg-motivo" class="mt-5" hidden>
+      <label for="dlg-motivo-texto" class="etiqueta">Motivo <span id="dlg-motivo-req" class="font-normal text-gris"></span></label>
+      <textarea id="dlg-motivo-texto" rows="3" class="campo" aria-describedby="dlg-motivo-ayuda"></textarea>
+      <p id="dlg-motivo-ayuda" class="ayuda">Queda en el historial. Si el estado es de cierre, también se publica.</p>
+    </div>
+
+    <div id="dlg-escribir" class="mt-5" hidden>
+      <label for="dlg-escribir-texto" class="etiqueta">Para confirmar, escribí <b id="dlg-escribir-clave" class="cifras text-peligro"></b></label>
+      <input id="dlg-escribir-texto" type="text" autocomplete="off" class="campo cifras" />
+    </div>
+
+    <p id="dlg-error" class="mt-5 rounded-md bg-peligro-fondo px-3 py-2 text-sm whitespace-pre-line text-peligro" role="alert" hidden></p>
+
+    <div class="mt-7 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+      <button type="button" class="btn-secundario" data-cancelar>Cancelar</button>
+      <button type="button" class="btn-primario" id="dlg-ok">Confirmar</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="toasts" class="pointer-events-none fixed inset-x-4 bottom-4 z-[60] flex flex-col items-center gap-2 sm:inset-x-auto sm:right-6 sm:items-end" role="status" aria-live="polite"></div>
+
+<style is:global>
+  @keyframes aparecer {
+    from {
+      opacity: 0;
+      transform: translateY(6px) scale(0.98);
+    }
+  }
+</style>

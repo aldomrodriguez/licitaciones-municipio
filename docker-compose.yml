@@ -1,0 +1,17 @@
+# Para Coolify (Docker Compose) o para probar la imagen en local: docker compose up --build
+services:
+  licitaciones:
+    build:
+      context: .
+      args:
+        SITE_URL: ${SITE_URL:-https://licitaciones.municipiodelobos.gob.ar}
+    restart: unless-stopped
+    environment:
+      SITE_URL: ${SITE_URL:-https://licitaciones.municipiodelobos.gob.ar}
+    ports:
+      - '4321:4321'
+    volumes:
+      - licitaciones-datos:/data
+
+volumes:
+  licitaciones-datos:

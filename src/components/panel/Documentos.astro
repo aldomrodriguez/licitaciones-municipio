@@ -1,0 +1,165 @@
+---
+import type { Documento } from '../../lib/db/schema';
+import type { Categoria } from '../../lib/categorias';
+import { ACCEPT_CLIENTE, TAMANO_MAXIMO_CLIENTE } from '../../lib/archivos-cliente';
+import { etiquetaFormato } from '../../lib/archivos-cliente';
+import { formatearFechaHora, formatearTamano } from '../../lib/formato';
+import { urlDocumentoPanel } from '../../lib/rutas';
+import IconoArchivo from '../ui/IconoArchivo.astro';
+import Icono from '../ui/Icono.astro';
+import subir from '@tabler/icons/outline/upload.svg?raw';
+import descarga from '@tabler/icons/outline/download.svg?raw';
+import ver from '@tabler/icons/outline/eye.svg?raw';
+import papelera from '@tabler/icons/outline/trash.svg?raw';
+import candado from '@tabler/icons/outline/lock.svg?raw';
+
+interface Props {
+  procedimientoId: number;
+  nombre: string;
+  lista: Documento[];
+  publicado: boolean;
+  editable: boolean;
+  /** Tipos de documento que se pueden subir en la etapa actual. */
+  categorias: readonly Categoria[];
+  /** Los que todavía no (o ya no) corresponden, para explicarlo. */
+  noDisponibles: readonly Categoria[];
+}
+const { procedimientoId, nombre, lista, publicado, editable, categorias, noDisponibles } = Astro.props;
+---
+
+<section aria-labelledby="t-docs" class="rounded-lg border border-linea bg-white p-5 sm:p-6">
+  <div class="flex flex-wrap items-baseline justify-between gap-2">
+    <h2 id="t-docs" class="text-lg font-bold">Documentación</h2>
+    <p class="text-sm text-gris">{lista.length === 1 ? '1 documento' : `${lista.length} documentos`}</p>
+  </div>
+
+  {
+    lista.length === 0 ? (
+      <p class="mt-2 text-sm text-gris">Todavía no hay documentos. Subí el pliego, circulares, actas o el decreto de adjudicación.</p>
+    ) : (
+      <ul class="mt-4 divide-y divide-linea border-y border-linea">
+        {lista.map((d) => (
+          <li class="flex flex-wrap items-center gap-3 py-3">
+            <span class:list={['grid size-10 shrink-0 place-items-center rounded-md', d.publico ? 'bg-rojo-claro text-rojo' : 'bg-neutro-fondo text-neutro']}>
+              <IconoArchivo mime={d.mime} tamano={22} />
+            </span>
+            <div class="min-w-0 flex-1">
+              <p class="font-semibold">
+                {d.titulo}
+                {!d.publico && (
+                  <span class="ml-1 inline-flex items-center gap-1 rounded-full bg-neutro-fondo px-2 py-0.5 align-middle text-xs font-semibold text-neutro">
+                    <Icono svg={candado} tamano={12} /> Interno
+                  </span>
+                )}
+              </p>
+              <p class="cifras text-[13px] text-gris">
+                {d.categoria}. {etiquetaFormato(d.mime)}, {formatearTamano(d.tamano)}. Subido el {formatearFechaHora(d.subidoEn)}.
+              </p>
+            </div>
+            <div class="flex items-center gap-1">
+              <a href={urlDocumentoPanel(d.id, true)} target="_blank" class="btn-fantasma p-2" aria-label={`Ver ${d.titulo}`} title="Ver">
+                <Icono svg={ver} tamano={18} />
+              </a>
+              <a href={urlDocumentoPanel(d.id)} class="btn-fantasma p-2" aria-label={`Descargar ${d.titulo}`} title="Descargar" download>
+                <Icono svg={descarga} tamano={18} />
+              </a>
+              {editable && (
+                <form
+                  method="post"
+                  data-accion="cambiarVisibilidadDocumento"
+                  data-titulo={d.publico ? `¿Hacer interno «${d.titulo}»?` : `¿Publicar «${d.titulo}»?`}
+                  data-detalle={d.publico ? 'Deja de verse y descargarse en el sitio público. Sigue disponible en el panel.' : publicado ? 'Cualquiera va a poder verlo y descargarlo desde el sitio.' : 'Se va a ver en el sitio cuando el procedimiento se publique.'}
+                  data-boton={d.publico ? 'Hacer interno' : 'Publicar documento'}
+                  data-exito={d.publico ? 'El documento ahora es interno.' : 'Documento publicado.'}
+                >
+                  <input type="hidden" name="documentoId" value={d.id} />
+                  <input type="hidden" name="publico" value={d.publico ? 'no' : 'si'} />
+                  <button type="submit" class="btn-fantasma px-2.5 py-2 text-[13px]">{d.publico ? 'Hacer interno' : 'Publicar'}</button>
+                </form>
+              )}
+              {editable && (
+                <form
+                  method="post"
+                  data-accion="quitarDocumento"
+                  data-titulo={`¿Enviar «${d.titulo}» a la papelera?`}
+                  data-detalle={`Deja de verse en el sitio y en esta ficha. Podés restaurarlo desde la Papelera.`}
+                  data-tono="peligro"
+                  data-boton="Enviar a la papelera"
+                  data-exito="Documento enviado a la papelera."
+                >
+                  <input type="hidden" name="documentoId" value={d.id} />
+                  <button type="submit" class="btn-fantasma p-2 hover:text-peligro" aria-label={`Enviar ${d.titulo} a la papelera`} title="Enviar a la papelera">
+                    <Icono svg={papelera} tamano={18} />
+                  </button>
+                </form>
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+
+  {
+    editable && (
+      <div class="mt-5" data-subida data-procedimiento={procedimientoId} data-nombre={nombre} data-publicado={publicado ? 'si' : 'no'}>
+        <label
+          class="flex cursor-pointer flex-col items-center gap-2 rounded-lg border-2 border-dashed border-linea px-4 py-7 text-center hover:border-gris data-[arrastrando]:border-rojo data-[arrastrando]:bg-rojo-claro"
+          data-zona
+        >
+          <Icono svg={subir} tamano={28} class="text-gris" />
+          <span class="font-semibold">Elegí archivos o arrastralos acá</span>
+          <span class="text-[13px] text-gris">PDF, imágenes, Word, Excel o ZIP. Hasta {TAMANO_MAXIMO_CLIENTE / 1024 / 1024} MB cada uno.</span>
+          <input type="file" multiple accept={ACCEPT_CLIENTE} class="sr-only" data-input />
+        </label>
+
+        {
+          noDisponibles.length > 0 && (
+            <p class="mt-2 text-[13px] text-gris">
+              En esta etapa no se pueden subir: {noDisponibles.join(', ').toLowerCase()}.
+            </p>
+          )
+        }
+
+        <div data-cola hidden class="mt-4">
+          <h3 class="text-sm font-semibold">Para subir</h3>
+          <ul class="mt-2 space-y-3" data-lista />
+          <div class="mt-4 flex flex-wrap justify-end gap-2">
+            <button type="button" class="btn-fantasma" data-vaciar>Descartar</button>
+            <button type="button" class="btn-primario" data-subir>Subir documentos</button>
+          </div>
+        </div>
+
+        <template data-fila>
+          <li class="rounded-md border border-linea bg-papel p-3">
+            <div class="flex items-center justify-between gap-2">
+              <p class="cifras min-w-0 truncate text-sm"><b data-nombre /> <span class="text-gris" data-tamano /></p>
+              <button type="button" class="btn-fantasma px-2 py-1 text-[13px]" data-quitar>Quitar</button>
+            </div>
+            <p class="mt-1 text-sm text-peligro" data-error hidden />
+            <div class="mt-2 grid gap-2 sm:grid-cols-[1.4fr_1fr_auto] sm:items-end">
+              <label class="block">
+                <span class="text-[13px] font-semibold">Título</span>
+                <input type="text" class="campo mt-1 py-2" required data-titulo />
+              </label>
+              <div>
+                <span class="text-[13px] font-semibold" aria-hidden="true">Tipo de documento</span>
+                <select class="campo mt-1 py-2" aria-label="Tipo de documento" data-categoria>
+                  {categorias.map((c) => <option value={c}>{c}</option>)}
+                </select>
+              </div>
+              <label class="flex items-center gap-2 py-2 text-sm">
+                <input type="checkbox" class="size-4 accent-rojo" checked data-publico /> Público
+              </label>
+            </div>
+          </li>
+        </template>
+      </div>
+    )
+  }
+</section>
+
+<script>
+  import { iniciarSubida } from '../../scripts/subida';
+  iniciarSubida();
+</script>

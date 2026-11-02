@@ -1,0 +1,31 @@
+---
+import Panel from '../../layouts/Panel.astro';
+import FormProcedimiento from '../../components/panel/FormProcedimiento.astro';
+import { db } from '../../lib/db';
+import { procedimientos } from '../../lib/db/schema';
+import { LISTA_TIPOS } from '../../lib/estados';
+import { and, eq, sql } from 'drizzle-orm';
+
+const anio = new Date().getFullYear();
+const siguientes = Object.fromEntries(
+  LISTA_TIPOS.map((t) => {
+    const max = db()
+      .select({ m: sql<number>`coalesce(max(${procedimientos.numero}), 0)` })
+      .from(procedimientos)
+      .where(and(eq(procedimientos.tipo, t), eq(procedimientos.anio, anio)))
+      .get()?.m ?? 0;
+    return [t, max + 1];
+  }),
+);
+---
+
+<Panel titulo="Nuevo procedimiento">
+  <nav aria-label="Ubicación" class="text-sm text-gris"><a href="/panel" class="hover:text-tinta hover:underline">Procedimientos</a> › Nuevo</nav>
+  <h1 class="mt-2 text-3xl font-bold tracking-tight">Nuevo procedimiento</h1>
+  <p class="mt-1 max-w-[640px] text-gris">
+    Se guarda como borrador. Después vas a poder adjuntar la documentación, cargar adjudicatarios y publicarlo cambiando el estado.
+  </p>
+  <div class="mt-8 max-w-[860px]">
+    <FormProcedimiento siguientes={siguientes} rol={Astro.locals.usuario!.rol} />
+  </div>
+</Panel>

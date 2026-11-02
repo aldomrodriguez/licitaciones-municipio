@@ -1,0 +1,60 @@
+---
+import type { Procedimiento } from '../../lib/db/schema';
+import { TIPOS } from '../../lib/estados';
+import { formatearMonto, partesFecha, textoCuentaRegresiva } from '../../lib/formato';
+import { urlPublica } from '../../lib/rutas';
+
+interface Props {
+  p: Procedimiento;
+}
+const { p } = Astro.props;
+const fecha = p.fechaApertura!;
+const partes = partesFecha(fecha);
+---
+
+<article class="grid gap-5 border-t border-linea py-7 first:border-t-0 sm:grid-cols-[132px_1fr] sm:gap-8">
+  <div class="flex items-center gap-4 sm:block" aria-hidden="true">
+    <div class="w-[104px] overflow-hidden rounded-lg border-2 border-tinta text-center sm:w-full">
+      <div class="bg-tinta py-1 text-xs font-bold text-white capitalize">{partes.mes}</div>
+      <div class="cifras py-1 text-[56px] leading-none font-extrabold tracking-tight">{partes.dia}</div>
+      <div class="border-t border-linea py-1 text-sm font-semibold capitalize">{partes.diaSemana}</div>
+    </div>
+    <p class="text-sm font-semibold text-rojo sm:mt-3">{textoCuentaRegresiva(fecha)}</p>
+  </div>
+  <div>
+    <p class="text-sm font-semibold text-gris">{TIPOS[p.tipo].nombre} n° {p.numero}/{p.anio}</p>
+    <h3 class="mt-1 text-xl leading-snug font-bold tracking-tight text-balance sm:text-2xl">
+      <a href={urlPublica(p)} class="hover:text-rojo hover:underline">{p.objeto}</a>
+    </h3>
+    <p class="sr-only">
+      Apertura: {partes.diaSemana} {partes.dia} de {partes.mes} de {partes.anio}.
+    </p>
+    <dl class="cifras mt-4 flex flex-wrap gap-x-8 gap-y-2 text-sm">
+      {
+        p.presupuestoOficial != null && (
+          <div>
+            <dt class="text-gris">Presupuesto oficial</dt>
+            <dd class="font-semibold">{formatearMonto(p.presupuestoOficial)}</dd>
+          </div>
+        )
+      }
+      {
+        p.valorPliego != null && (
+          <div>
+            <dt class="text-gris">Valor del pliego</dt>
+            <dd class="font-semibold">{formatearMonto(p.valorPliego)}</dd>
+          </div>
+        )
+      }
+      {
+        p.lugarApertura && (
+          <div>
+            <dt class="text-gris">Lugar de apertura</dt>
+            <dd class="font-semibold">{p.lugarApertura}</dd>
+          </div>
+        )
+      }
+    </dl>
+    <a href={urlPublica(p)} class="btn-secundario mt-5">Ver pliego y documentación</a>
+  </div>
+</article>

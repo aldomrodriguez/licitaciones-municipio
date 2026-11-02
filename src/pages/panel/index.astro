@@ -1,0 +1,148 @@
+---
+import Panel from '../../layouts/Panel.astro';
+import EstadoBadge from '../../components/ui/EstadoBadge.astro';
+import Icono from '../../components/ui/Icono.astro';
+import mas from '@tabler/icons/outline/plus.svg?raw';
+import clip from '@tabler/icons/outline/paperclip.svg?raw';
+import { db } from '../../lib/db';
+import { aniosDisponibles, listarPanel } from '../../lib/procedimientos';
+import { ESTADOS, LISTA_TIPOS, TIPOS, esEstado, esTipo, type Estado } from '../../lib/estados';
+import { formatearFecha, formatearMonto } from '../../lib/formato';
+import { urlPanel } from '../../lib/rutas';
+
+const params = Astro.url.searchParams;
+const tipoP = params.get('tipo') ?? '';
+const estadoP = params.get('estado') ?? '';
+const tipo = esTipo(tipoP) ? tipoP : undefined;
+const estado = esEstado(estadoP) ? estadoP : undefined;
+const anioN = Number(params.get('anio'));
+const anio = Number.isInteger(anioN) && anioN > 2000 ? anioN : undefined;
+const q = params.get('q')?.slice(0, 100) ?? '';
+
+const conexion = db();
+const filas = listarPanel(conexion, { tipo, estado, anio, q });
+const anios = aniosDisponibles(conexion);
+const filtrando = Boolean(tipo || estado || anio || q);
+const todos = filtrando ? listarPanel(conexion, {}) : filas;
+const contar = (e: Estado) => todos.filter((f) => f.p.estado === e).length;
+const atajos = (['borrador', 'llamado', 'evaluacion', 'tramite'] as const).map((e) => ({ e, n: contar(e) })).filter((a) => a.n > 0);
+---
+
+<Panel titulo="Procedimientos">
+  <div class="flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <h1 class="text-3xl font-bold tracking-tight">Procedimientos</h1>
+      <p class="mt-1 text-gris">Licitaciones públicas, privadas y concursos de precios.</p>
+    </div>
+    <a href="/panel/nuevo" class="btn-primario"><Icono svg={mas} tamano={18} /> Nuevo procedimiento</a>
+  </div>
+
+  {
+    atajos.length > 0 && (
+      <ul class="mt-6 flex flex-wrap gap-2" aria-label="Atajos por estado">
+        {atajos.map((a) => (
+          <li>
+            <a
+              href={`/panel?estado=${a.e}`}
+              aria-current={estado === a.e ? 'true' : undefined}
+              class="flex items-center gap-2 rounded-full border border-linea bg-white py-1 pr-3 pl-1 text-sm hover:border-gris aria-[current]:border-tinta aria-[current]:ring-1 aria-[current]:ring-tinta"
+            >
+              <EstadoBadge estado={a.e} />
+              <span class="cifras font-semibold">{a.n}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+
+  <form method="get" class="mt-6 grid gap-3 rounded-lg border border-linea bg-white p-4 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_.7fr_auto]" data-filtros>
+    <div>
+      <label for="f-q" class="etiqueta">Buscar</label>
+      <input id="f-q" name="q" type="search" value={q} placeholder="Objeto o número (7/2026)" class="campo" />
+    </div>
+    <div>
+      <label for="f-tipo" class="etiqueta">Modalidad</label>
+      <select id="f-tipo" name="tipo" class="campo">
+        <option value="">Todas</option>
+        {LISTA_TIPOS.map((t) => <option value={t} selected={t === tipo}>{TIPOS[t].nombre}</option>)}
+      </select>
+    </div>
+    <div>
+      <label for="f-estado" class="etiqueta">Estado</label>
+      <select id="f-estado" name="estado" class="campo">
+        <option value="">Todos</option>
+        {(Object.keys(ESTADOS) as Estado[]).map((e) => <option value={e} selected={e === estado}>{ESTADOS[e].nombre}</option>)}
+      </select>
+    </div>
+    <div>
+      <label for="f-anio" class="etiqueta">Año</label>
+      <select id="f-anio" name="anio" class="campo">
+        <option value="">Todos</option>
+        {anios.map((a) => <option value={a} selected={a === anio}>{a}</option>)}
+      </select>
+    </div>
+    <div class="flex items-end gap-2">
+      <button type="submit" class="btn-secundario">Filtrar</button>
+      {filtrando && <a href="/panel" class="btn-fantasma">Limpiar</a>}
+    </div>
+  </form>
+
+  <p class="mt-5 text-sm text-gris" role="status">{filas.length === 1 ? '1 procedimiento' : `${filas.length} procedimientos`}</p>
+
+  {
+    filas.length === 0 ? (
+      <div class="mt-4 rounded-lg border border-dashed border-linea bg-white p-10 text-center">
+        <p class="font-semibold">{filtrando ? 'Ningún procedimiento coincide con los filtros.' : 'Todavía no hay procedimientos cargados.'}</p>
+        <a href={filtrando ? '/panel' : '/panel/nuevo'} class="btn-primario mt-4">
+          {filtrando ? 'Quitar filtros' : 'Cargar el primero'}
+        </a>
+      </div>
+    ) : (
+      <div class="mt-3 overflow-x-auto rounded-lg border border-linea bg-white">
+        <table class="cifras w-full min-w-[860px] text-left text-sm">
+          <caption class="sr-only">Listado de procedimientos</caption>
+          <thead class="border-b border-linea bg-papel text-[13px] text-gris">
+            <tr>
+              <th scope="col" class="px-4 py-3 font-semibold">Procedimiento</th>
+              <th scope="col" class="px-4 py-3 font-semibold">Objeto</th>
+              <th scope="col" class="px-4 py-3 font-semibold">Estado</th>
+              <th scope="col" class="px-4 py-3 font-semibold">Apertura / adjudicado</th>
+              <th scope="col" class="px-4 py-3 text-center font-semibold"><span class="sr-only">Documentos</span><Icono svg={clip} tamano={16} /></th>
+              <th scope="col" class="px-4 py-3 font-semibold">Modificado</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-linea">
+            {filas.map((f) => {
+              const e = esEstado(f.p.estado) ? f.p.estado : 'borrador';
+              return (
+                <tr class="relative hover:bg-papel">
+                  <th scope="row" class="px-4 py-3 align-top font-normal whitespace-nowrap">
+                    <span class="block text-[13px] text-gris">{TIPOS[f.p.tipo].corto}</span>
+                    <a href={urlPanel(f.p)} class="font-bold text-tinta after:absolute after:inset-0 hover:text-rojo">
+                      {f.p.numero}/{f.p.anio}
+                    </a>
+                  </th>
+                  <td class="max-w-[420px] px-4 py-3 align-top">
+                    <span class="line-clamp-2">{f.p.objeto}</span>
+                  </td>
+                  <td class="px-4 py-3 align-top"><EstadoBadge estado={e} /></td>
+                  <td class="px-4 py-3 align-top whitespace-nowrap">
+                    {e === 'adjudicada' && f.total > 0 ? formatearMonto(f.total) : f.p.fechaApertura ? formatearFecha(f.p.fechaApertura, 'corta') : <span class="text-gris">—</span>}
+                  </td>
+                  <td class="px-4 py-3 text-center align-top">{f.documentos || <span class="text-gris">0</span>}</td>
+                  <td class="px-4 py-3 align-top whitespace-nowrap text-gris">{formatearFecha(f.p.actualizadoEn, 'corta')}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    )
+  }
+</Panel>
+
+<script>
+  const form = document.querySelector<HTMLFormElement>('[data-filtros]');
+  form?.querySelectorAll('select').forEach((s) => s.addEventListener('change', () => form.requestSubmit()));
+</script>

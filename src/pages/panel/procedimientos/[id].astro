@@ -1,0 +1,114 @@
+---
+import Panel from '../../../layouts/Panel.astro';
+import FormProcedimiento from '../../../components/panel/FormProcedimiento.astro';
+import TarjetaEstado from '../../../components/panel/TarjetaEstado.astro';
+import Adjudicaciones from '../../../components/panel/Adjudicaciones.astro';
+import Documentos from '../../../components/panel/Documentos.astro';
+import Historial from '../../../components/panel/Historial.astro';
+import Icono from '../../../components/ui/Icono.astro';
+import externo from '@tabler/icons/outline/external-link.svg?raw';
+import papelera from '@tabler/icons/outline/trash.svg?raw';
+import { db } from '../../../lib/db';
+import { detalle, ErrorNegocio, nombreProcedimiento } from '../../../lib/procedimientos';
+import { ESTADOS, TIPOS, categoriasNoDisponibles, esVisiblePublico, reglasEtapa } from '../../../lib/estados';
+import { urlPublica } from '../../../lib/rutas';
+
+const id = Number(Astro.params.id);
+let d;
+try {
+  d = Number.isInteger(id) ? detalle(db(), id) : null;
+} catch (e) {
+  if (!(e instanceof ErrorNegocio)) throw e;
+  d = null;
+}
+if (!d) return Astro.redirect('/panel');
+
+const usuario = Astro.locals.usuario!;
+const p = d.procedimiento;
+const enPapelera = Boolean(p.eliminadoEn);
+const publicado = esVisiblePublico(d.estado);
+const nombre = nombreProcedimiento(p);
+const editable = !enPapelera;
+const reglas = reglasEtapa(p.tipo, d.estado, usuario.rol);
+const avisoAdjudicatarios = enPapelera || reglas.adjudicatarios
+  ? undefined
+  : ESTADOS[d.estado].final
+    ? 'El procedimiento está cerrado: para cambiar los adjudicatarios, un administrador tiene que reabrirlo.'
+    : `Los adjudicatarios se cargan cuando el procedimiento pasa a «${p.tipo === 'publica' ? 'En evaluación' : 'En trámite de adjudicación'}».`;
+---
+
+<Panel titulo={`${TIPOS[p.tipo].corto} ${p.numero}/${p.anio}`}>
+  <nav aria-label="Ubicación" class="text-sm text-gris"><a href="/panel" class="hover:text-tinta hover:underline">Procedimientos</a> › {TIPOS[p.tipo].corto} {p.numero}/{p.anio}</nav>
+
+  <div class="mt-2 flex flex-wrap items-end justify-between gap-4">
+    <div class="min-w-0">
+      <p class="font-semibold text-gris">{TIPOS[p.tipo].nombre}</p>
+      <h1 class="cifras text-4xl font-extrabold tracking-[-.04em] sm:text-5xl">n° {p.numero}/{p.anio}</h1>
+    </div>
+    {
+      publicado && !enPapelera ? (
+        <a href={urlPublica(p)} target="_blank" class="btn-secundario">
+          <Icono svg={externo} tamano={16} /> Ver en el sitio
+        </a>
+      ) : (
+        <p class="text-sm text-gris">{enPapelera ? 'En la papelera' : 'Borrador: no se ve en el sitio'}</p>
+      )
+    }
+  </div>
+
+  {
+    enPapelera && (
+      <div class="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-peligro bg-peligro-fondo p-4 text-peligro" role="alert">
+        <p class="font-semibold">Este procedimiento está en la papelera: no se puede editar ni se ve en el sitio.</p>
+        <form method="post" data-accion="restaurarProcedimiento" data-titulo={`¿Restaurar ${nombre}?`} data-detalle={`Vuelve al listado con el estado que tenía (${ESTADOS[d.estado].nombre}).${publicado ? '|Como no era borrador, vuelve a verse en el sitio público.' : ''}`} data-boton="Restaurar" data-exito="Procedimiento restaurado.">
+          <input type="hidden" name="id" value={p.id} />
+          <button type="submit" class="btn-secundario">Restaurar</button>
+        </form>
+      </div>
+    )
+  }
+
+  <div class="mt-8 grid gap-8 lg:grid-cols-[1fr_320px]">
+    <div class="min-w-0 space-y-8">
+      {editable ? <FormProcedimiento p={p} estado={d.estado} rol={usuario.rol} /> : <p class="text-gris">{p.objeto}</p>}
+      <Adjudicaciones procedimientoId={p.id} lista={d.adjudicaciones} total={d.totalAdjudicado} editable={editable && reglas.adjudicatarios} aviso={avisoAdjudicatarios} />
+      <Documentos
+        procedimientoId={p.id}
+        nombre={nombre}
+        lista={d.documentos}
+        publicado={publicado}
+        editable={editable}
+        categorias={reglas.categorias}
+        noDisponibles={categoriasNoDisponibles(p.tipo, d.estado, usuario.rol)}
+      />
+      <Historial lista={d.historial} />
+    </div>
+    <aside class="space-y-6 lg:sticky lg:top-6 lg:self-start">
+      {editable && <TarjetaEstado p={p} estado={d.estado} rol={usuario.rol} cantidadAdjudicaciones={d.adjudicaciones.length} />}
+      {
+        editable && (
+          <section aria-labelledby="t-eliminar" class="rounded-lg border border-linea bg-white p-5">
+            <h2 id="t-eliminar" class="text-sm font-semibold">Eliminar</h2>
+            <p class="mt-1 text-sm text-gris">Va a la papelera: deja de verse en el sitio y se puede restaurar.</p>
+            <form
+              method="post"
+              class="mt-3"
+              data-accion="eliminarProcedimiento"
+              data-titulo={`¿Enviar ${nombre} a la papelera?`}
+              data-detalle={`${publicado ? 'Deja de verse en el sitio público de inmediato.|' : ''}Se conservan sus documentos, adjudicatarios e historial. Podés restaurarlo desde la Papelera.`}
+              data-tono="peligro"
+              data-boton="Enviar a la papelera"
+              data-exito="Procedimiento enviado a la papelera."
+              data-ir="/panel"
+            >
+              <input type="hidden" name="id" value={p.id} />
+              <button type="submit" class="btn-secundario w-full hover:border-peligro hover:text-peligro">
+                <Icono svg={papelera} tamano={18} /> Enviar a la papelera
+              </button>
+            </form>
+          </section>
+        )
+      }
+    </aside>
+  </div>
+</Panel>

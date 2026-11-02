@@ -1,0 +1,24 @@
+---
+import Panel from '../../layouts/Panel.astro';
+const yo = Astro.locals.usuario!;
+---
+
+<Panel titulo="Mi cuenta">
+  <h1 class="text-3xl font-bold tracking-tight">Mi cuenta</h1>
+  <p class="mt-1 text-gris">{yo.nombre}, {yo.email}</p>
+  <section aria-labelledby="t-clave" class="mt-8 max-w-[440px] rounded-lg border border-linea bg-white p-5">
+    <h2 id="t-clave" class="text-lg font-bold">Cambiar contraseña</h2>
+    <form method="post" class="mt-4 space-y-4" data-accion="cambiarMiClave" data-titulo="¿Cambiar tu contraseña?" data-detalle="La próxima vez vas a ingresar con la nueva." data-boton="Cambiar contraseña" data-exito="Contraseña cambiada.">
+      <div>
+        <label for="nueva" class="etiqueta">Contraseña nueva</label>
+        <input id="nueva" name="nueva" type="password" required minlength="10" autocomplete="new-password" class="campo" aria-describedby="nueva-ayuda" />
+        <p id="nueva-ayuda" class="ayuda">Al menos 10 caracteres.</p>
+      </div>
+      <div>
+        <label for="repetir" class="etiqueta">Repetila</label>
+        <input id="repetir" name="repetir" type="password" required minlength="10" autocomplete="new-password" class="campo" />
+      </div>
+      <button type="submit" class="btn-primario">Cambiar contraseña</button>
+    </form>
+  </section>
+</Panel>

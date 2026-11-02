@@ -1,0 +1,12 @@
+node_modules
+dist
+.astro
+data
+tests
+test-results
+playwright-report
+.git
+.env
+*.log
+informacion.html
+.e2e-data

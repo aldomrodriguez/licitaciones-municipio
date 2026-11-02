@@ -1,0 +1,80 @@
+---
+import type { Procedimiento } from '../../lib/db/schema';
+import { ESTADOS, consecuencias, reglasEtapa, transicionesPosibles, validarTransicion, type Estado, type Rol } from '../../lib/estados';
+import EstadoBadge from '../ui/EstadoBadge.astro';
+import Recorrido from '../publico/Recorrido.astro';
+import Icono from '../ui/Icono.astro';
+import flecha from '@tabler/icons/outline/arrow-right.svg?raw';
+
+interface Props {
+  p: Procedimiento;
+  estado: Estado;
+  rol: Rol;
+  cantidadAdjudicaciones: number;
+}
+const { p, estado, rol, cantidadAdjudicaciones } = Astro.props;
+const datos = { tipo: p.tipo, estado, fechaApertura: p.fechaApertura, cantidadAdjudicaciones };
+const { guia } = reglasEtapa(p.tipo, estado, rol);
+const opciones = transicionesPosibles(p.tipo, estado, rol);
+const def = ESTADOS[estado];
+---
+
+<section aria-labelledby="t-estado" class="rounded-lg border border-linea bg-white p-5">
+  <h2 id="t-estado" class="text-sm font-semibold text-gris">Estado actual</h2>
+  <div class="mt-2"><EstadoBadge estado={estado} tamano="md" /></div>
+  <p class="mt-2 text-sm text-gris">{def.descripcion}</p>
+  {p.motivoEstado && <p class="mt-2 rounded-md bg-papel px-3 py-2 text-sm"><b>Motivo:</b> {p.motivoEstado}</p>}
+  {estado !== 'borrador' && <div class="mt-5 hidden sm:block"><Recorrido tipo={p.tipo} estado={estado} /></div>}
+  {guia && <p class="mt-5 rounded-md border-l-4 border-tinta bg-papel px-3 py-2 text-sm leading-relaxed"><b>En esta etapa:</b> {guia}</p>}
+
+  {
+    opciones.length > 0 ? (
+      <div class="mt-5 border-t border-linea pt-4">
+        <h3 class="text-sm font-semibold">Cambiar a</h3>
+        <ul class="mt-2 grid gap-2">
+          {opciones.map((t) => {
+            const destino = ESTADOS[t.destino];
+            const peligro = destino.tono === 'peligro' || destino.tono === 'alerta' || t.correccion;
+            // Requisitos que faltan (sin contar el motivo, que se pide en el diálogo).
+            const faltan = validarTransicion(datos, t.destino, rol, 'motivo que se pide en el diálogo');
+            if (faltan.length > 0) {
+              return (
+                <li>
+                  <button type="button" class="btn-secundario w-full justify-between" disabled aria-describedby={`falta-${t.destino}`}>
+                    {destino.nombre}
+                  </button>
+                  <p id={`falta-${t.destino}`} class="mt-1 text-[13px] text-gris">{faltan.join(' ')}</p>
+                </li>
+              );
+            }
+            return (
+              <li>
+                <form
+                  method="post"
+                  data-accion="cambiarEstado"
+                  data-titulo={t.correccion ? `¿Reabrir como «${destino.nombre}»?` : `¿Pasar a «${destino.nombre}»?`}
+                  data-detalle={[`Estado actual: ${def.nombre}. Nuevo estado: ${destino.nombre}.`, ...consecuencias(datos, t.destino, t.correccion)].join('|')}
+                  data-tono={peligro ? 'peligro' : undefined}
+                  data-motivo={destino.pideMotivo || t.correccion ? 'requerido' : 'opcional'}
+                  data-boton={t.correccion ? 'Reabrir' : `Pasar a ${destino.nombre}`}
+                  data-exito={`Estado cambiado a «${destino.nombre}».`}
+                >
+                  <input type="hidden" name="id" value={p.id} />
+                  <input type="hidden" name="destino" value={t.destino} />
+                  <button type="submit" class="btn-secundario group w-full justify-between hover:border-tinta">
+                    <span>{t.correccion ? `Corregir: reabrir como ${destino.nombre}` : destino.nombre}</span>
+                    <Icono svg={flecha} tamano={16} class="text-gris group-hover:text-tinta" />
+                  </button>
+                </form>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    ) : (
+      <p class="mt-5 border-t border-linea pt-4 text-sm text-gris">
+        Estado de cierre. Si hubo un error, un administrador puede reabrirlo.
+      </p>
+    )
+  }
+</section>

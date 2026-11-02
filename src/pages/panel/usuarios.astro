@@ -1,0 +1,93 @@
+---
+import Panel from '../../layouts/Panel.astro';
+import { asc } from 'drizzle-orm';
+import { db } from '../../lib/db';
+import { usuarios } from '../../lib/db/schema';
+import { formatearFecha } from '../../lib/formato';
+
+const yo = Astro.locals.usuario!;
+if (yo.rol !== 'admin') return Astro.redirect('/panel');
+const lista = db().select().from(usuarios).orderBy(asc(usuarios.nombre)).all();
+---
+
+<Panel titulo="Usuarios">
+  <h1 class="text-3xl font-bold tracking-tight">Usuarios</h1>
+  <p class="mt-1 text-gris">Quiénes pueden entrar al panel. Las contraseñas las genera el sistema y se muestran una sola vez.</p>
+
+  <div class="mt-8 grid gap-8 lg:grid-cols-[1fr_360px]">
+    <div class="overflow-x-auto rounded-lg border border-linea bg-white">
+      <table class="w-full min-w-[640px] text-left text-sm">
+        <caption class="sr-only">Usuarios del panel</caption>
+        <thead class="border-b border-linea bg-papel text-[13px] text-gris">
+          <tr>
+            <th scope="col" class="px-4 py-3 font-semibold">Nombre</th>
+            <th scope="col" class="px-4 py-3 font-semibold">Rol</th>
+            <th scope="col" class="px-4 py-3 font-semibold">Alta</th>
+            <th scope="col" class="px-4 py-3"><span class="sr-only">Acciones</span></th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-linea">
+          {
+            lista.map((u) => (
+              <tr class:list={[!u.activo && 'text-gris']}>
+                <td class="px-4 py-3">
+                  <span class="font-semibold">{u.nombre}</span>
+                  {!u.activo && <span class="ml-1 rounded-full bg-neutro-fondo px-2 py-0.5 text-xs font-semibold">De baja</span>}
+                  <span class="block text-[13px] text-gris">{u.email}</span>
+                </td>
+                <td class="px-4 py-3">{u.rol === 'admin' ? 'Administrador' : 'Compras'}</td>
+                <td class="cifras px-4 py-3 whitespace-nowrap">{formatearFecha(u.creadoEn, 'corta')}</td>
+                <td class="px-4 py-3">
+                  {u.id !== yo.id && (
+                    <div class="flex justify-end gap-1">
+                      <form method="post" data-accion="resetearClave" data-titulo={`¿Restablecer la contraseña de ${u.nombre}?`} data-detalle="Se genera una contraseña nueva y se cierran sus sesiones abiertas. La anterior deja de funcionar." data-boton="Generar contraseña nueva">
+                        <input type="hidden" name="usuarioId" value={u.id} />
+                        <button type="submit" class="btn-fantasma px-2.5 py-1.5 text-[13px]">Restablecer contraseña</button>
+                      </form>
+                      <form
+                        method="post"
+                        data-accion="cambiarActivoUsuario"
+                        data-titulo={u.activo ? `¿Dar de baja a ${u.nombre}?` : `¿Reactivar a ${u.nombre}?`}
+                        data-detalle={u.activo ? 'No va a poder entrar al panel y se cierran sus sesiones. Lo que cargó sigue en el historial con su nombre.' : 'Va a poder volver a entrar con su contraseña actual.'}
+                        data-tono={u.activo ? 'peligro' : undefined}
+                        data-boton={u.activo ? 'Dar de baja' : 'Reactivar'}
+                        data-exito={u.activo ? 'Usuario dado de baja.' : 'Usuario reactivado.'}
+                      >
+                        <input type="hidden" name="usuarioId" value={u.id} />
+                        <input type="hidden" name="activo" value={u.activo ? 'no' : 'si'} />
+                        <button type="submit" class="btn-fantasma px-2.5 py-1.5 text-[13px]">{u.activo ? 'Dar de baja' : 'Reactivar'}</button>
+                      </form>
+                    </div>
+                  )}
+                </td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <section aria-labelledby="t-nuevo" class="self-start rounded-lg border border-linea bg-white p-5">
+      <h2 id="t-nuevo" class="text-lg font-bold">Nuevo usuario</h2>
+      <form method="post" class="mt-4 space-y-4" data-accion="crearUsuario" data-diff data-titulo="¿Crear el usuario?" data-detalle="Al confirmar se genera su contraseña para que se la pases." data-boton="Crear usuario" data-exito="Usuario creado.">
+        <div>
+          <label for="u-nombre" class="etiqueta">Nombre y apellido</label>
+          <input id="u-nombre" name="nombre" required minlength="3" class="campo" data-etiqueta="Nombre" />
+        </div>
+        <div>
+          <label for="u-email" class="etiqueta">Email</label>
+          <input id="u-email" name="email" type="email" required class="campo" data-etiqueta="Email" />
+        </div>
+        <div>
+          <label for="u-rol" class="etiqueta">Rol</label>
+          <select id="u-rol" name="rol" class="campo" data-etiqueta="Rol" aria-describedby="u-rol-ayuda">
+            <option value="compras" selected>Compras</option>
+            <option value="admin">Administrador</option>
+          </select>
+          <p id="u-rol-ayuda" class="ayuda">El administrador además gestiona usuarios, reabre estados de cierre y vacía la papelera.</p>
+        </div>
+        <button type="submit" class="btn-primario w-full">Crear usuario</button>
+      </form>
+    </section>
+  </div>
+</Panel>

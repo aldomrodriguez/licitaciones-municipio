@@ -1,0 +1,94 @@
+@import 'tailwindcss';
+
+@font-face {
+  font-family: 'Geist';
+  src: url('/fonts/geist.woff2') format('woff2');
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+/* Tokens de Muni-2026 (ver scripts/sync-marca.ts) + tonos de estado propios. */
+@theme {
+  --font-sans: 'Geist', Arial, sans-serif;
+
+  --color-rojo: #d52027;
+  --color-rojo-oscuro: #a8161c;
+  --color-rojo-claro: #fdeced;
+  --color-tinta: #202124;
+  --color-noche: #141517;
+  --color-papel: #f4f6f9;
+  --color-linea: #dddfe2;
+  --color-gris: #687078;
+
+  --color-proceso: #8a4b00;
+  --color-proceso-fondo: #fff2dc;
+  --color-exito: #17633f;
+  --color-exito-fondo: #e3f2e9;
+  --color-alerta: #6b5600;
+  --color-alerta-fondo: #f8f0c8;
+  --color-peligro: #8c1c1c;
+  --color-peligro-fondo: #f9e3e3;
+  --color-neutro: #4f565d;
+  --color-neutro-fondo: #eceef1;
+
+  --container-sitio: 1180px;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-white font-sans text-tinta antialiased;
+  }
+  :focus-visible {
+    outline: 3px solid var(--color-rojo);
+    outline-offset: 2px;
+    border-radius: 3px;
+  }
+  /* Montos, números y fechas alinean en columnas. */
+  .cifras {
+    font-variant-numeric: tabular-nums;
+  }
+  dialog::backdrop {
+    background: rgb(20 21 23 / 0.55);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@utility contenedor {
+  width: min(var(--container-sitio), 100% - 32px);
+  margin-inline: auto;
+}
+
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+}
+@utility btn-primario {
+  @apply btn bg-rojo text-white hover:bg-rojo-oscuro;
+}
+@utility btn-secundario {
+  @apply btn border border-linea bg-white text-tinta hover:border-gris;
+}
+@utility btn-peligro {
+  @apply btn bg-peligro text-white hover:bg-[#6d1414];
+}
+@utility btn-fantasma {
+  @apply btn text-gris hover:bg-papel hover:text-tinta;
+}
+@utility campo {
+  @apply block w-full rounded-md border border-linea bg-white px-3 py-2.5 text-[15px] text-tinta placeholder:text-gris/70 focus:border-tinta focus:outline-none focus-visible:outline-2 focus-visible:outline-rojo aria-invalid:border-peligro;
+}
+@utility etiqueta {
+  @apply mb-1.5 block text-sm font-semibold text-tinta;
+}
+@utility ayuda {
+  @apply mt-1 text-[13px] text-gris;
+}

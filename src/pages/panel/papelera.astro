@@ -1,0 +1,107 @@
+---
+import Panel from '../../layouts/Panel.astro';
+import IconoArchivo from '../../components/ui/IconoArchivo.astro';
+import { db } from '../../lib/db';
+import { nombreProcedimiento, papelera } from '../../lib/procedimientos';
+import { TIPOS } from '../../lib/estados';
+import { formatearFechaHora, formatearTamano } from '../../lib/formato';
+import { urlDocumentoPanel, urlPanel } from '../../lib/rutas';
+
+const { procedimientos, documentos } = papelera(db());
+const admin = Astro.locals.usuario!.rol === 'admin';
+---
+
+<Panel titulo="Papelera">
+  <h1 class="text-3xl font-bold tracking-tight">Papelera</h1>
+  <p class="mt-1 max-w-[680px] text-gris">
+    Lo que se elimina queda acá y se puede restaurar. {admin ? 'Como administrador, también podés eliminarlo para siempre.' : 'Solo un administrador puede eliminarlo para siempre.'}
+  </p>
+
+  <section aria-labelledby="t-procs" class="mt-8 rounded-lg border border-linea bg-white p-5 sm:p-6">
+    <h2 id="t-procs" class="text-lg font-bold">Procedimientos <span class="cifras font-normal text-gris">({procedimientos.length})</span></h2>
+    {
+      procedimientos.length === 0 ? (
+        <p class="mt-2 text-sm text-gris">No hay procedimientos en la papelera.</p>
+      ) : (
+        <ul class="mt-4 divide-y divide-linea border-y border-linea">
+          {procedimientos.map((p) => {
+            const nombre = nombreProcedimiento(p);
+            const clave = `${p.numero}/${p.anio}`;
+            return (
+              <li class="flex flex-wrap items-center gap-4 py-4">
+                <div class="min-w-0 flex-1">
+                  <a href={urlPanel(p)} class="font-semibold hover:text-rojo hover:underline">
+                    {TIPOS[p.tipo].nombre} n° {clave}
+                  </a>
+                  <p class="line-clamp-1 text-sm text-gris">{p.objeto}</p>
+                  <p class="cifras text-[13px] text-gris">Eliminado el {formatearFechaHora(p.eliminadoEn)}</p>
+                </div>
+                <form method="post" data-accion="restaurarProcedimiento" data-titulo={`¿Restaurar ${nombre}?`} data-detalle="Vuelve al listado con el estado que tenía. Si no era borrador, vuelve a verse en el sitio público." data-boton="Restaurar" data-exito="Procedimiento restaurado.">
+                  <input type="hidden" name="id" value={p.id} />
+                  <button type="submit" class="btn-secundario">Restaurar</button>
+                </form>
+                {admin && (
+                  <form
+                    method="post"
+                    data-accion="eliminarProcedimientoDefinitivo"
+                    data-titulo={`¿Eliminar para siempre ${nombre}?`}
+                    data-detalle="Se borran el procedimiento, sus adjudicatarios, su historial y todos sus archivos. No se puede deshacer."
+                    data-tono="peligro"
+                    data-escribir={clave}
+                    data-boton="Eliminar para siempre"
+                    data-exito="Procedimiento eliminado definitivamente."
+                  >
+                    <input type="hidden" name="id" value={p.id} />
+                    <button type="submit" class="btn-fantasma text-peligro hover:bg-peligro-fondo hover:text-peligro">Eliminar para siempre</button>
+                  </form>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )
+    }
+  </section>
+
+  <section aria-labelledby="t-docs" class="mt-6 rounded-lg border border-linea bg-white p-5 sm:p-6">
+    <h2 id="t-docs" class="text-lg font-bold">Documentos <span class="cifras font-normal text-gris">({documentos.length})</span></h2>
+    {
+      documentos.length === 0 ? (
+        <p class="mt-2 text-sm text-gris">No hay documentos en la papelera.</p>
+      ) : (
+        <ul class="mt-4 divide-y divide-linea border-y border-linea">
+          {documentos.map(({ d, p }) => (
+            <li class="flex flex-wrap items-center gap-4 py-4">
+              <span class="grid size-10 shrink-0 place-items-center rounded-md bg-neutro-fondo text-neutro"><IconoArchivo mime={d.mime} tamano={22} /></span>
+              <div class="min-w-0 flex-1">
+                <a href={urlDocumentoPanel(d.id, true)} target="_blank" class="font-semibold hover:text-rojo hover:underline">{d.titulo}</a>
+                <p class="cifras text-sm text-gris">
+                  {d.categoria}, {formatearTamano(d.tamano)}. De <a href={urlPanel(p)} class="underline hover:text-tinta">{TIPOS[p.tipo].corto} {p.numero}/{p.anio}</a>. Eliminado el {formatearFechaHora(d.eliminadoEn)}.
+                </p>
+              </div>
+              <form method="post" data-accion="restaurarDocumento" data-titulo={`¿Restaurar «${d.titulo}»?`} data-detalle={d.publico ? 'Vuelve a la ficha y, si el procedimiento está publicado, al sitio.' : 'Vuelve a la ficha como documento interno.'} data-boton="Restaurar" data-exito="Documento restaurado.">
+                <input type="hidden" name="documentoId" value={d.id} />
+                <button type="submit" class="btn-secundario">Restaurar</button>
+              </form>
+              {admin && (
+                <form
+                  method="post"
+                  data-accion="eliminarDocumentoDefinitivo"
+                  data-titulo={`¿Eliminar para siempre «${d.titulo}»?`}
+                  data-detalle="Se borra el archivo del servidor. No se puede deshacer."
+                  data-tono="peligro"
+                  data-escribir="eliminar"
+                  data-boton="Eliminar para siempre"
+                  data-exito="Documento eliminado definitivamente."
+                >
+                  <input type="hidden" name="documentoId" value={d.id} />
+                  <button type="submit" class="btn-fantasma text-peligro hover:bg-peligro-fondo hover:text-peligro">Eliminar para siempre</button>
+                </form>
+              )}
+            </li>
+          ))}
+        </ul>
+      )
+    }
+  </section>
+</Panel>

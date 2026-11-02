@@ -1,0 +1,62 @@
+---
+import '../../styles/global.css';
+import { db } from '../../lib/db';
+import { guardarCookie, iniciarSesion } from '../../lib/auth';
+
+const volverParam = Astro.url.searchParams.get('volver') ?? '/panel';
+const volver = volverParam.startsWith('/panel') ? volverParam : '/panel';
+let error = '';
+let email = '';
+
+if (Astro.request.method === 'POST') {
+  const datos = await Astro.request.formData();
+  email = String(datos.get('email') ?? '');
+  const r = await iniciarSesion(db(), email, String(datos.get('clave') ?? ''));
+  if (r) {
+    guardarCookie(Astro.cookies, r.token);
+    return Astro.redirect(volver, 303);
+  }
+  error = 'El email o la contraseña no son correctos.';
+  Astro.response.status = 401;
+}
+if (Astro.locals.usuario) return Astro.redirect('/panel');
+---
+
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Ingresar | Panel de licitaciones</title>
+    <link rel="icon" href="/favicon.png" />
+  </head>
+  <body class="grid min-h-dvh place-items-center bg-tinta px-4 py-10">
+    <main class="w-full max-w-[400px]">
+      <img src="/marca/logo-municipio-lobos.png" alt="Municipio de Lobos" width="160" height="94" class="mx-auto mb-8 w-[150px]" />
+      <div class="rounded-xl border-t-4 border-rojo bg-white p-7 shadow-2xl">
+        <h1 class="text-2xl font-bold tracking-tight">Panel de licitaciones</h1>
+        <p class="mt-1 text-gris">Ingresá con tu usuario del área de Compras.</p>
+        {
+          error && (
+            <p class="mt-5 rounded-md bg-peligro-fondo px-3 py-2 text-sm text-peligro" role="alert" id="error-login">
+              {error}
+            </p>
+          )
+        }
+        <form method="post" class="mt-6 space-y-4">
+          <div>
+            <label for="email" class="etiqueta">Email</label>
+            <input id="email" name="email" type="email" required autocomplete="username" value={email} class="campo" aria-invalid={error ? 'true' : undefined} aria-describedby={error ? 'error-login' : undefined} autofocus />
+          </div>
+          <div>
+            <label for="clave" class="etiqueta">Contraseña</label>
+            <input id="clave" name="clave" type="password" required autocomplete="current-password" class="campo" aria-invalid={error ? 'true' : undefined} />
+          </div>
+          <button type="submit" class="btn-primario w-full py-3">Ingresar</button>
+        </form>
+      </div>
+      <p class="mt-6 text-center text-sm text-white/60">¿Olvidaste la contraseña? Pedile a un administrador que la restablezca.</p>
+    </main>
+  </body>
+</html>

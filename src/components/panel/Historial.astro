@@ -1,0 +1,45 @@
+---
+import type { EntradaHistorial } from '../../lib/db/schema';
+import { formatearFechaHora } from '../../lib/formato';
+import { describirEntrada } from '../../lib/historial-texto';
+import Icono from '../ui/Icono.astro';
+import ojo from '@tabler/icons/outline/eye.svg?raw';
+
+interface Props {
+  lista: EntradaHistorial[];
+}
+const { lista } = Astro.props;
+const PUNTO: Record<string, string> = {
+  estado: 'bg-rojo',
+  prorroga: 'bg-proceso',
+  eliminado: 'bg-peligro',
+  documento_quitado: 'bg-peligro',
+  adjudicacion_quitada: 'bg-peligro',
+};
+---
+
+<section aria-labelledby="t-historial" class="rounded-lg border border-linea bg-white p-5 sm:p-6">
+  <h2 id="t-historial" class="text-lg font-bold">Historial</h2>
+  <p class="mt-1 text-sm text-gris">
+    Todo lo que se cambió, quién y cuándo. Lo marcado con <Icono svg={ojo} tamano={14} class="inline align-[-2px]" etiqueta="ojo" /> también se ve en el sitio público.
+  </p>
+  <ol class="mt-5 space-y-5">
+    {
+      lista.map((h) => (
+        <li class="relative border-l-2 border-linea pl-5">
+          <span class:list={['absolute top-1.5 -left-[5px] size-2 rounded-full', PUNTO[h.accion] ?? 'bg-gris']} aria-hidden="true" />
+          <p class="cifras text-[13px] text-gris">
+            <time datetime={h.fecha.toISOString()}>{formatearFechaHora(h.fecha)}</time>, {h.usuarioNombre}
+            {h.publico && (
+              <span class="ml-1 inline-block align-[-2px]" title="Visible en el sitio público">
+                <Icono svg={ojo} tamano={14} etiqueta="Visible en el sitio público" />
+              </span>
+            )}
+          </p>
+          <p class="mt-0.5 text-[15px] leading-snug">{describirEntrada(h)}</p>
+          {h.motivo && <p class="mt-1 text-sm text-gris">Motivo: {h.motivo}</p>}
+        </li>
+      ))
+    }
+  </ol>
+</section>
