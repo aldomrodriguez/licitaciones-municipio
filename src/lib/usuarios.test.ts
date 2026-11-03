@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import { crearDb, type Db } from './db';
 import { sesiones, usuarios } from './db/schema';
 import { hashear, iniciarSesion, validarSesion } from './auth';
+import { LimiteIntentos } from './limite-intentos';
 import { cambiarActivo, cambiarClavePropia, crearUsuario, ErrorUsuario, resetearClave, ultimosCambiosUsuarios } from './usuarios';
 
 let db: Db;
@@ -60,6 +61,13 @@ describe('cambio de la propia contraseña', () => {
     await expect(cambiarClavePropia(db, admin.id, { actual: 'otra-cosa-larga', nueva: 'nueva-clave-123', repetir: 'nueva-clave-123' }, undefined)).rejects.toThrow(
       'actual no es correcta',
     );
+  });
+
+  it('después de 5 intentos con la actual equivocada, se bloquea aunque después acierte', async () => {
+    const limite = new LimiteIntentos();
+    const mal = { actual: 'otra-cosa-larga', nueva: 'nueva-clave-123', repetir: 'nueva-clave-123' };
+    for (let i = 0; i < 5; i++) await expect(cambiarClavePropia(db, admin.id, mal, undefined, limite)).rejects.toThrow('actual no es correcta');
+    await expect(cambiarClavePropia(db, admin.id, { ...mal, actual: 'clave-admin-larga' }, undefined, limite)).rejects.toThrow('Demasiados intentos');
   });
 
   it('exige que la nueva sea distinta y que coincida', async () => {

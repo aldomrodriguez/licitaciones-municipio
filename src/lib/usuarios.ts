@@ -7,6 +7,10 @@ import { desc, eq } from 'drizzle-orm';
 import type { Db } from './db';
 import { cambiosUsuarios, usuarios, type CambioUsuario, type Usuario } from './db/schema';
 import { cerrarOtrasSesiones, cerrarSesionesDe, hashear, validarClave, verificarClave } from './auth';
+import { LimiteIntentos, textoEspera } from './limite-intentos';
+
+/** Intentos fallidos de la contraseña actual al cambiarla (una sesión robada no puede probar sin límite). */
+export const limiteCambioClave = new LimiteIntentos();
 
 export class ErrorUsuario extends Error {}
 
@@ -79,9 +83,17 @@ export async function cambiarClavePropia(
   usuarioId: number,
   datos: { actual: string; nueva: string; repetir: string },
   tokenActual: string | undefined,
+  limite: LimiteIntentos = limiteCambioClave,
 ) {
   const u = buscar(db, usuarioId);
-  if (!(await verificarClave(db, usuarioId, datos.actual))) throw new ErrorUsuario('La contraseña actual no es correcta.');
+  const clave = `usuario-${usuarioId}`;
+  const espera = limite.espera(clave, 'cambio-clave');
+  if (espera > 0) throw new ErrorUsuario(textoEspera(espera));
+  if (!(await verificarClave(db, usuarioId, datos.actual))) {
+    limite.registrarFallo(clave, 'cambio-clave');
+    throw new ErrorUsuario('La contraseña actual no es correcta.');
+  }
+  limite.registrarExito(clave, 'cambio-clave');
   const error = validarClave(datos.nueva) ?? (datos.nueva !== datos.repetir ? 'Las contraseñas nuevas no coinciden.' : null);
   if (error) throw new ErrorUsuario(error);
   if (datos.nueva === datos.actual) throw new ErrorUsuario('La contraseña nueva tiene que ser distinta de la actual.');
