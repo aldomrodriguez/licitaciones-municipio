@@ -1,7 +1,8 @@
 import type { APIRoute } from 'astro';
 import { db } from '../../../lib/db';
 import { ErrorConfiguracion, guardarSeccion, leerConfiguracion } from '../../../lib/configuracion';
-import { borrarImagenMarca, guardarImagenMarca, type ClaseImagen } from '../../../lib/marca-archivos';
+import { TAMANO_MAXIMO_MARCA, borrarImagenMarca, guardarImagenMarca, type ClaseImagen } from '../../../lib/marca-archivos';
+import { MARGEN_FORMULARIO, excedeTamano } from '../../../lib/seguridad';
 
 const texto = (mensaje: string, status: number) =>
   new Response(mensaje, { status, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
@@ -11,6 +12,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const usuario = locals.usuario;
   if (!usuario) return texto('Tu sesión venció. Volvé a ingresar.', 401);
   if (usuario.rol !== 'admin') return texto('Esta acción es solo para administradores.', 403);
+  if (excedeTamano(request, TAMANO_MAXIMO_MARCA + MARGEN_FORMULARIO)) return texto('La imagen supera los 2 MB.', 413);
 
   const datos = await request.formData();
   const clase = datos.get('clase');

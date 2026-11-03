@@ -5,10 +5,12 @@ import Icono from '../../components/ui/Icono.astro';
 import Paginacion from '../../components/ui/Paginacion.astro';
 import clip from '@tabler/icons/outline/paperclip.svg?raw';
 import filtro from '@tabler/icons/outline/adjustments-horizontal.svg?raw';
+import alerta from '@tabler/icons/outline/alert-triangle.svg?raw';
 import { db } from '../../lib/db';
 import { aniosDisponibles, listarPanel } from '../../lib/procedimientos';
 import { ESTADOS, LISTA_TIPOS, TIPOS, esEstado, esTipo, type Estado } from '../../lib/estados';
-import { formatearFecha, formatearMonto } from '../../lib/formato';
+import { diaLobos, formatearFecha, formatearMonto } from '../../lib/formato';
+import { LISTA_REGLAS, REGLAS_ATENCION, esReglaAtencion, idsConPliego, reglasQueAplican } from '../../lib/atencion';
 import { urlPanel } from '../../lib/rutas';
 import { paginar } from '../../lib/paginacion';
 
@@ -20,12 +22,19 @@ const estado = esEstado(estadoP) ? estadoP : undefined;
 const anioN = Number(params.get('anio'));
 const anio = Number.isInteger(anioN) && anioN > 2000 ? anioN : undefined;
 const q = params.get('q')?.slice(0, 100) ?? '';
+const atencionP = params.get('atencion') ?? '';
+const atencion = esReglaAtencion(atencionP) ? atencionP : undefined;
 
 const conexion = db();
-const filas = listarPanel(conexion, { tipo, estado, anio, q });
+const conPliego = idsConPliego(conexion);
+const hoy = diaLobos(new Date());
+const filtrados = listarPanel(conexion, { tipo, estado, anio, q });
+const reglasDe = (f: (typeof filtrados)[number]) => reglasQueAplican(f.p, conPliego.has(f.p.id), hoy);
+const filas = atencion ? filtrados.filter((f) => reglasDe(f).includes(atencion)) : filtrados;
 const anios = aniosDisponibles(conexion);
-const filtrando = Boolean(tipo || estado || anio || q);
-const todos = filtrando ? listarPanel(conexion, {}) : filas;
+const filtrando = Boolean(tipo || estado || anio || q || atencion);
+const todos = tipo || estado || anio || q ? listarPanel(conexion, {}) : filtrados;
+const pendientes = LISTA_REGLAS.map((r) => ({ r, n: todos.filter((f) => reglasDe(f).includes(r)).length })).filter((x) => x.n > 0);
 const contar = (e: Estado) => todos.filter((f) => f.p.estado === e).length;
 const atajos = (['borrador', 'llamado', 'evaluacion', 'tramite'] as const).map((e) => ({ e, n: contar(e) })).filter((a) => a.n > 0);
 const filtrosActivos = [tipo, estado, anio, q].filter(Boolean).length;
@@ -62,6 +71,37 @@ const apertura = (f: (typeof filas)[number]) => {
     )
   }
 
+  {
+    atencion ? (
+      <div class="mt-6 flex flex-wrap items-start justify-between gap-3 rounded-lg border border-proceso/30 bg-proceso-fondo p-4 text-sm" role="status">
+        <div>
+          <p class="font-semibold text-proceso">{REGLAS_ATENCION[atencion].titulo}</p>
+          <p class="mt-0.5 text-tinta">{REGLAS_ATENCION[atencion].ayuda}</p>
+        </div>
+        <a href="/panel" class="btn-secundario px-3 py-1.5 text-[13px]">Ver todos</a>
+      </div>
+    ) : (
+      !filtrando &&
+      pendientes.length > 0 && (
+        <section aria-labelledby="t-atencion" class="mt-6 rounded-lg border border-proceso/30 bg-proceso-fondo p-4">
+          <h2 id="t-atencion" class="flex items-center gap-2 font-semibold text-proceso">
+            <Icono svg={alerta} tamano={18} /> Requieren atención
+          </h2>
+          <ul class="mt-2 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
+            {pendientes.map((x) => (
+              <li>
+                <a href={`/panel?atencion=${x.r}`} class="group flex items-baseline gap-2 rounded py-0.5 text-tinta hover:underline">
+                  <span class="cifras min-w-6 font-bold">{x.n}</span>
+                  <span>{REGLAS_ATENCION[x.r].titulo}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )
+    )
+  }
+
   <button
     type="button"
     class="btn-secundario mt-6 w-full justify-between sm:hidden"
@@ -78,6 +118,7 @@ const apertura = (f: (typeof filas)[number]) => {
     class="mt-3 hidden gap-3 rounded-lg border border-linea bg-white p-4 data-[abierto]:grid sm:mt-6 sm:grid sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_.7fr_auto]"
     data-filtros
   >
+    {atencion && <input type="hidden" name="atencion" value={atencion} />}
     <div>
       <label for="f-q" class="etiqueta">Buscar</label>
       <input id="f-q" name="q" type="search" value={q} placeholder="Objeto o número (7/2026)" class="campo" />

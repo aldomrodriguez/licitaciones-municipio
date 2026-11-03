@@ -1,6 +1,6 @@
 import { hash, verify } from '@node-rs/argon2';
 import { createHash, randomBytes } from 'node:crypto';
-import { and, eq, gt, lt } from 'drizzle-orm';
+import { and, eq, gt, lt, ne } from 'drizzle-orm';
 import type { AstroCookies } from 'astro';
 import type { Db } from './db';
 import { sesiones, usuarios, type Usuario } from './db/schema';
@@ -10,7 +10,7 @@ const DURACION_MS = 1000 * 60 * 60 * 12; // una jornada laboral larga
 
 let hashFicticio: Promise<string> | undefined;
 
-export type UsuarioSesion = Pick<Usuario, 'id' | 'nombre' | 'email' | 'rol'>;
+export type UsuarioSesion = Pick<Usuario, 'id' | 'nombre' | 'email' | 'rol' | 'debeCambiarClave'>;
 
 export function hashear(clave: string): Promise<string> {
   return hash(clave);
@@ -30,14 +30,22 @@ export async function iniciarSesion(db: Db, email: string, clave: string): Promi
   const token = randomBytes(32).toString('base64url');
   db.delete(sesiones).where(lt(sesiones.expiraEn, new Date())).run();
   db.insert(sesiones).values({ id: idDeToken(token), usuarioId: u.id, expiraEn: new Date(Date.now() + DURACION_MS) }).run();
-  return { token, usuario: { id: u.id, nombre: u.nombre, email: u.email, rol: u.rol } };
+  return { token, usuario: { id: u.id, nombre: u.nombre, email: u.email, rol: u.rol, debeCambiarClave: u.debeCambiarClave } };
 }
 
 export function validarSesion(db: Db, token: string | undefined): UsuarioSesion | null {
   if (!token) return null;
   const id = idDeToken(token);
   const fila = db
-    .select({ id: usuarios.id, nombre: usuarios.nombre, email: usuarios.email, rol: usuarios.rol, activo: usuarios.activo, expiraEn: sesiones.expiraEn })
+    .select({
+      id: usuarios.id,
+      nombre: usuarios.nombre,
+      email: usuarios.email,
+      rol: usuarios.rol,
+      debeCambiarClave: usuarios.debeCambiarClave,
+      activo: usuarios.activo,
+      expiraEn: sesiones.expiraEn,
+    })
     .from(sesiones)
     .innerJoin(usuarios, eq(sesiones.usuarioId, usuarios.id))
     .where(and(eq(sesiones.id, id), gt(sesiones.expiraEn, new Date())))
@@ -47,7 +55,7 @@ export function validarSesion(db: Db, token: string | undefined): UsuarioSesion 
   if (fila.expiraEn.getTime() - Date.now() < DURACION_MS / 2) {
     db.update(sesiones).set({ expiraEn: new Date(Date.now() + DURACION_MS) }).where(eq(sesiones.id, id)).run();
   }
-  return { id: fila.id, nombre: fila.nombre, email: fila.email, rol: fila.rol };
+  return { id: fila.id, nombre: fila.nombre, email: fila.email, rol: fila.rol, debeCambiarClave: fila.debeCambiarClave };
 }
 
 export function cerrarSesion(db: Db, token: string | undefined) {
@@ -56,6 +64,19 @@ export function cerrarSesion(db: Db, token: string | undefined) {
 
 export function cerrarSesionesDe(db: Db, usuarioId: number) {
   db.delete(sesiones).where(eq(sesiones.usuarioId, usuarioId)).run();
+}
+
+/** Cierra todas las sesiones del usuario menos la actual (por ejemplo, al cambiar la contraseña). */
+export function cerrarOtrasSesiones(db: Db, usuarioId: number, tokenActual: string | undefined) {
+  const actual = tokenActual ? idDeToken(tokenActual) : '';
+  db.delete(sesiones).where(and(eq(sesiones.usuarioId, usuarioId), ne(sesiones.id, actual))).run();
+}
+
+/** Verifica la contraseña actual de un usuario (para cambiarla, por ejemplo). */
+export async function verificarClave(db: Db, usuarioId: number, clave: string): Promise<boolean> {
+  const u = db.select({ hash: usuarios.hash }).from(usuarios).where(eq(usuarios.id, usuarioId)).get();
+  if (!u) return false;
+  return verify(u.hash, clave).catch(() => false);
 }
 
 export function guardarCookie(cookies: AstroCookies, token: string) {

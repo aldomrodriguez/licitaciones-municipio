@@ -318,7 +318,7 @@ function mejorarFecha(input: HTMLInputElement) {
 
   const pintarValor = () => {
     const d = desdeIso(input.value);
-    valor.textContent = d ? textoFecha(d) : 'Elegir fecha';
+    valor.textContent = d ? textoFecha(d) : soloLectura ? 'Sin informar' : 'Elegir fecha';
     valor.classList.toggle('text-gris', !d);
   };
   pintarValor();

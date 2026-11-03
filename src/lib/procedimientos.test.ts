@@ -45,8 +45,8 @@ const publica = (extra: Partial<DatosProcedimiento> = {}): DatosProcedimiento =>
 beforeEach(() => {
   db = crearDb(':memory:');
   const u = db.insert(usuarios).values([
-    { nombre: 'Ana Compras', email: 'ana@lobos.gob.ar', hash: 'x', rol: 'compras' },
-    { nombre: 'Admin', email: 'admin@lobos.gob.ar', hash: 'x', rol: 'admin' },
+    { nombre: 'Ana Compras', email: 'ana@municipio.gob.ar', hash: 'x', rol: 'compras' },
+    { nombre: 'Admin', email: 'admin@municipio.gob.ar', hash: 'x', rol: 'admin' },
   ]).returning().all();
   compras = { id: u[0]!.id, nombre: u[0]!.nombre, rol: 'compras' };
   admin = { id: u[1]!.id, nombre: u[1]!.nombre, rol: 'admin' };

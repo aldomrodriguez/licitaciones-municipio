@@ -10,6 +10,8 @@ export const usuarios = sqliteTable('usuarios', {
   hash: text('hash').notNull(),
   rol: text('rol', { enum: ['admin', 'compras'] }).notNull().default('compras'),
   activo: integer('activo', { mode: 'boolean' }).notNull().default(true),
+  /** La contraseña la generó el sistema (alta o reseteo): hay que cambiarla al entrar. */
+  debeCambiarClave: integer('debe_cambiar_clave', { mode: 'boolean' }).notNull().default(false),
   creadoEn: integer('creado_en', { mode: 'timestamp_ms' }).notNull().default(ahora),
 });
 
@@ -142,3 +144,19 @@ export const cambiosConfiguracion = sqliteTable('cambios_configuracion', {
 });
 
 export type CambioConfiguracion = typeof cambiosConfiguracion.$inferSelect;
+
+/** Registro de cambios de usuarios: altas, bajas, reactivaciones y contraseñas. */
+export const cambiosUsuarios = sqliteTable('cambios_usuarios', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  fecha: integer('fecha', { mode: 'timestamp_ms' }).notNull().default(ahora),
+  /** Quién hizo el cambio (nombre copiado, para sobrevivir a bajas). */
+  actorNombre: text('actor_nombre').notNull(),
+  usuarioId: integer('usuario_id').references(() => usuarios.id),
+  /** Nombre y email del usuario afectado al momento del cambio. */
+  usuarioNombre: text('usuario_nombre').notNull(),
+  usuarioEmail: text('usuario_email').notNull(),
+  accion: text('accion', { enum: ['alta', 'baja', 'reactivacion', 'reseteo_clave', 'cambio_clave'] }).notNull(),
+  detalle: text('detalle'),
+});
+
+export type CambioUsuario = typeof cambiosUsuarios.$inferSelect;

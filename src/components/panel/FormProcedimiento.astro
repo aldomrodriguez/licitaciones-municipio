@@ -5,7 +5,7 @@
  * en solo lectura con la explicación al lado; el servidor los rechaza igual.
  */
 import type { Procedimiento } from '../../lib/db/schema';
-import { LISTA_TIPOS, TIPOS, motivoBloqueo, reglasEtapa, type CampoEtapa, type Estado, type Rol } from '../../lib/estados';
+import { ESTADOS, LISTA_TIPOS, TIPOS, motivoBloqueo, reglasEtapa, type CampoEtapa, type Estado, type Rol } from '../../lib/estados';
 import { aFechaInput, montoAInput } from '../../lib/formato';
 import Icono from '../ui/Icono.astro';
 import candado from '@tabler/icons/outline/lock.svg?raw';
@@ -24,7 +24,12 @@ const publicado = estado !== 'borrador';
 const anioActual = new Date().getFullYear();
 const reglas = reglasEtapa(tipo, estado, rol);
 const bloqueado = (c: CampoEtapa) => !reglas.campos.has(c);
-const nota = (c: CampoEtapa) => (bloqueado(c) ? motivoBloqueo(tipo, estado, c) : null);
+// Cerrado: un solo aviso arriba en vez de repetir «Bloqueado» debajo de cada campo.
+const cerrado = ESTADOS[estado].final;
+const nota = (c: CampoEtapa) => (bloqueado(c) && !cerrado ? motivoBloqueo(tipo, estado, c) : null);
+const placeholderMonto = (c: CampoEtapa) => (bloqueado(c) ? 'Sin informar' : '0,00');
+/** El signo $ sobra si el monto está vacío y no se puede cargar («Sin informar»). */
+const conSigno = (c: 'presupuestoOficial' | 'valorPliego') => !(bloqueado(c) && p?.[c] == null);
 const solo = (tipos: string[]) => (tipos.includes(tipo) ? undefined : true);
 const claseCampo = (c: CampoEtapa) => (bloqueado(c) ? 'campo cifras cursor-not-allowed bg-papel text-gris' : 'campo cifras');
 const todoBloqueado = [...reglas.camposModalidad].every((c) => c === 'observacionesPublicas' || bloqueado(c));
@@ -32,7 +37,7 @@ const todoBloqueado = [...reglas.camposModalidad].every((c) => c === 'observacio
 
 <form
   method="post"
-  class="space-y-8"
+  class="group/form space-y-8"
   data-accion={edicion ? 'actualizarProcedimiento' : 'crearProcedimiento'}
   data-diff
   data-prorroga={publicado ? 'si' : undefined}
@@ -49,10 +54,12 @@ const todoBloqueado = [...reglas.camposModalidad].every((c) => c === 'observacio
   {p && <input type="hidden" name="id" value={p.id} />}
 
   {
-    todoBloqueado && (
+    (todoBloqueado || cerrado) && (
       <p class="flex items-start gap-2 rounded-lg border border-linea bg-white p-4 text-sm text-gris">
         <Icono svg={candado} tamano={18} class="mt-0.5" />
-        Los datos están bloqueados porque el procedimiento está cerrado. Podés agregar observaciones y documentación.
+        {cerrado
+          ? 'El procedimiento está cerrado: sus datos quedan bloqueados. Podés agregar observaciones y documentación.'
+          : 'En esta etapa los datos están bloqueados. Podés agregar observaciones y documentación.'}
       </p>
     )
   }
@@ -95,7 +102,7 @@ const todoBloqueado = [...reglas.camposModalidad].every((c) => c === 'observacio
     <div class="mt-5">
       <label for="objeto" class="etiqueta">Objeto</label>
       <textarea id="objeto" name="objeto" rows="3" required minlength="5" readonly={bloqueado('objeto')} class={bloqueado('objeto') ? 'campo cursor-not-allowed bg-papel text-gris' : 'campo'} data-etiqueta="Objeto" aria-describedby="objeto-ayuda">{p?.objeto}</textarea>
-      <p id="objeto-ayuda" class="ayuda">{nota('objeto') ?? 'Qué se compra o contrata, tal como figura en el pliego o el decreto.'}</p>
+      <p id="objeto-ayuda" class="ayuda">{nota('objeto') ?? (bloqueado('objeto') ? '' : 'Qué se compra o contrata, tal como figura en el pliego o el decreto.')}</p>
     </div>
     <div class="mt-5">
       <label for="areaSolicitante" class="etiqueta">Área solicitante <span class="font-normal text-gris">(opcional)</span></label>
@@ -109,16 +116,16 @@ const todoBloqueado = [...reglas.camposModalidad].every((c) => c === 'observacio
       <div>
         <label for="presupuestoOficial" class="etiqueta">Presupuesto oficial</label>
         <div class="relative">
-          <span class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-gris" aria-hidden="true">$</span>
-          <input id="presupuestoOficial" name="presupuestoOficial" type="text" inputmode="decimal" value={montoAInput(p?.presupuestoOficial)} placeholder="0,00" readonly={bloqueado('presupuestoOficial')} aria-describedby={nota('presupuestoOficial') ? 'n-presupuesto' : undefined} class={`${claseCampo('presupuestoOficial')} pl-7`} data-etiqueta="Presupuesto oficial" data-monto />
+          {conSigno('presupuestoOficial') && <span class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-gris" aria-hidden="true">$</span>}
+          <input id="presupuestoOficial" name="presupuestoOficial" type="text" inputmode="decimal" value={montoAInput(p?.presupuestoOficial)} placeholder={placeholderMonto('presupuestoOficial')} readonly={bloqueado('presupuestoOficial')} aria-describedby={nota('presupuestoOficial') ? 'n-presupuesto' : undefined} class={`${claseCampo('presupuestoOficial')} ${conSigno('presupuestoOficial') ? 'pl-7' : ''}`} data-etiqueta="Presupuesto oficial" data-monto />
         </div>
         {nota('presupuestoOficial') && <p id="n-presupuesto" class="ayuda">{nota('presupuestoOficial')}</p>}
       </div>
       <div data-solo="publica" hidden={solo(['publica'])}>
         <label for="valorPliego" class="etiqueta">Valor del pliego</label>
         <div class="relative">
-          <span class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-gris" aria-hidden="true">$</span>
-          <input id="valorPliego" name="valorPliego" type="text" inputmode="decimal" value={montoAInput(p?.valorPliego)} placeholder="0,00" readonly={bloqueado('valorPliego')} aria-describedby={nota('valorPliego') ? 'n-pliego' : undefined} class={`${claseCampo('valorPliego')} pl-7`} data-etiqueta="Valor del pliego" data-monto />
+          {conSigno('valorPliego') && <span class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-gris" aria-hidden="true">$</span>}
+          <input id="valorPliego" name="valorPliego" type="text" inputmode="decimal" value={montoAInput(p?.valorPliego)} placeholder={placeholderMonto('valorPliego')} readonly={bloqueado('valorPliego')} aria-describedby={nota('valorPliego') ? 'n-pliego' : undefined} class={`${claseCampo('valorPliego')} ${conSigno('valorPliego') ? 'pl-7' : ''}`} data-etiqueta="Valor del pliego" data-monto />
         </div>
         {nota('valorPliego') && <p id="n-pliego" class="ayuda">{nota('valorPliego')}</p>}
       </div>
@@ -160,7 +167,14 @@ const todoBloqueado = [...reglas.camposModalidad].every((c) => c === 'observacio
     </div>
   </fieldset>
 
-  <div class="sticky bottom-0 z-10 -mx-4 flex justify-end gap-2 border-t border-linea bg-papel/95 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-lg sm:border">
+  {/* En la edición la barra queda fija abajo solo cuando hay cambios sin guardar (data-sucio). */}
+  <div
+    class:list={[
+      'bottom-0 z-10 -mx-4 flex items-center justify-end gap-3 border-t border-linea bg-papel/95 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-lg sm:border',
+      edicion ? 'group-data-[sucio]/form:sticky' : 'sticky',
+    ]}
+  >
+    {edicion && <p class="mr-auto hidden text-sm font-semibold text-proceso group-data-[sucio]/form:block">Tenés cambios sin guardar.</p>}
     {!edicion && <a href="/panel" class="btn-fantasma">Cancelar</a>}
     <button type="submit" class="btn-primario">{edicion ? 'Guardar cambios' : 'Crear borrador'}</button>
   </div>

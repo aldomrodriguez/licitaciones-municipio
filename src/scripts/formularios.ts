@@ -126,7 +126,12 @@ let sucio = false;
 let saliendo = false;
 
 function marcarSucio() {
-  sucio = [...document.querySelectorAll<HTMLFormElement>('form[data-diff]')].some((f) => cambios(f).length > 0);
+  sucio = false;
+  for (const f of document.querySelectorAll<HTMLFormElement>('form[data-diff]')) {
+    const conCambios = cambios(f).length > 0;
+    f.toggleAttribute('data-sucio', conCambios);
+    sucio ||= conCambios;
+  }
 }
 
 // Aviso nativo del navegador al cerrar o recargar con cambios sin guardar.
@@ -198,7 +203,10 @@ async function enviar(form: HTMLFormElement, e: SubmitEvent) {
   if (resultado && 'clave' in resultado) {
     await confirmar({
       titulo: 'Contraseña generada',
-      detalle: ['Pasásela a la persona por un canal seguro. No se vuelve a mostrar: anotala ahora.'],
+      detalle: [
+        'Pasásela a la persona por un canal seguro. No se vuelve a mostrar: anotala ahora.',
+        'Es provisoria: al entrar, el sistema le pide que elija una propia.',
+      ],
       lista: [resultado.clave],
       boton: 'Ya la anoté',
     });
