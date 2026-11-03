@@ -24,7 +24,7 @@ const estado = esEstado(p.estado) ? p.estado : 'borrador';
       <span class="cifras block text-xl font-extrabold tracking-tight">n° {p.numero}/{p.anio}</span>
     </div>
     <div class="min-w-0">
-      <p class="leading-snug font-medium group-hover:text-rojo">{p.objeto}</p>
+      <p class="leading-snug font-medium group-hover:text-marca">{p.objeto}</p>
       <p class="cifras mt-1.5 text-sm text-gris">
         {
           estado === 'adjudicada' && total > 0 ? (

@@ -3,13 +3,15 @@ import Publico from '../layouts/Publico.astro';
 import LlamadoAbierto from '../components/publico/LlamadoAbierto.astro';
 import FilaProcedimiento from '../components/publico/FilaProcedimiento.astro';
 import Icono from '../components/ui/Icono.astro';
+import Paginacion from '../components/ui/Paginacion.astro';
 import buscar from '@tabler/icons/outline/search.svg?raw';
 import { db } from '../lib/db';
 import { aniosDisponibles, listarPublico, llamadosAbiertos } from '../lib/procedimientos';
 import { ESTADOS, LISTA_TIPOS, TIPOS, esEstado, esTipo } from '../lib/estados';
-import { MODALIDADES, QUE_ES, VIGENCIA_MONTOS } from '../lib/contenido';
-import marca from '../components/marca/marca.json';
+import { letraDecorativa } from '../lib/configuracion';
+import { paginar } from '../lib/paginacion';
 
+const { nombre, migas, queEs, modalidades, vigenciaMontos } = Astro.locals.sitio;
 const params = Astro.url.searchParams;
 const tipo = esTipo(params.get('tipo') ?? '') ? (params.get('tipo') as keyof typeof TIPOS) : undefined;
 const estadoParam = params.get('estado') ?? '';
@@ -23,9 +25,11 @@ const conexion = db();
 const abiertos = llamadosAbiertos(conexion);
 const anios = aniosDisponibles(conexion, true);
 const filas = listarPublico(conexion, { tipo, estado, anio, q });
+// 25 por página; un año que sigue en la página siguiente repite su título allá.
+const { pagina, paginas, visibles, desde, hasta } = paginar(filas, params.get('pagina'), 25);
 
 const porAnio = new Map<number, typeof filas>();
-for (const f of filas) {
+for (const f of visibles) {
   const lista = porAnio.get(f.p.anio) ?? [];
   lista.push(f);
   porAnio.set(f.p.anio, lista);
@@ -36,23 +40,27 @@ const estadosFiltro = (['llamado', 'evaluacion', 'tramite', 'adjudicada', 'desie
 }));
 ---
 
-<Publico titulo="Licitaciones" descripcion="Llamados abiertos, aperturas y adjudicaciones de licitaciones públicas, privadas y concursos de precios del Municipio de Lobos.">
-  <section class="relative overflow-hidden bg-rojo text-white">
+<Publico titulo="Licitaciones" descripcion={`Llamados abiertos, aperturas y adjudicaciones de licitaciones públicas, privadas y concursos de precios del ${nombre}.`}>
+  <section class="relative overflow-hidden bg-marca text-white">
     <div class="pointer-events-none absolute -top-36 right-[3vw] rotate-[-7deg] text-[390px] leading-none font-black text-white/[.075] select-none" aria-hidden="true">
-      L
+      {letraDecorativa(nombre)}
     </div>
     <div class="contenedor relative pt-12 pb-14 sm:pt-16 sm:pb-[75px]">
       <nav aria-label="Ubicación" class="mb-10 text-xs text-white sm:mb-14">
         <ol class="flex flex-wrap items-center gap-2.5">
-          <li><a href={marca.inicio} class="underline-offset-2 hover:underline">Inicio</a></li>
-          <li aria-hidden="true">›</li>
-          <li><a href={marca.nav[1]?.href} class="underline-offset-2 hover:underline">Municipio</a></li>
-          <li aria-hidden="true">›</li>
+          {
+            migas.map((m) => (
+              <>
+                <li><a href={m.href} class="underline-offset-2 hover:underline">{m.texto}</a></li>
+                <li aria-hidden="true">›</li>
+              </>
+            ))
+          }
           <li><b class="text-white" aria-current="page">Licitaciones</b></li>
         </ol>
       </nav>
       <h1 class="text-[44px] leading-none font-bold tracking-[-.045em] sm:text-[clamp(44px,6vw,72px)]">Licitaciones y concursos</h1>
-      <p class="mt-5 max-w-[660px] text-lg leading-normal text-[#ffe8e9]">{QUE_ES}</p>
+      <p class="mt-5 max-w-[660px] text-lg leading-normal text-marca-sobre-marca">{queEs}</p>
     </div>
   </section>
 
@@ -85,17 +93,17 @@ const estadosFiltro = (['llamado', 'evaluacion', 'tramite', 'adjudicada', 'desie
       <div class="flex flex-wrap items-end justify-between gap-4">
         <h2 id="titulo-listado" class="text-[29px] leading-tight font-bold tracking-[-.035em] sm:text-[35px]">Todos los procedimientos</h2>
         <details class="group text-sm">
-          <summary class="cursor-pointer font-semibold text-rojo hover:underline">¿Qué diferencia hay entre las modalidades?</summary>
+          <summary class="cursor-pointer font-semibold text-marca hover:underline">¿Qué diferencia hay entre las modalidades?</summary>
           <dl class="mt-4 grid max-w-[720px] gap-4 rounded-lg border border-linea bg-white p-5 text-[15px] leading-relaxed">
             {
               LISTA_TIPOS.map((t) => (
                 <div>
                   <dt class="font-bold">{TIPOS[t].nombre}</dt>
-                  <dd class="text-gris">{MODALIDADES[t]}</dd>
+                  <dd class="text-gris">{modalidades[t]}</dd>
                 </div>
               ))
             }
-            <p class="text-[13px] text-gris">Montos vigentes desde {VIGENCIA_MONTOS}.</p>
+            {vigenciaMontos && <p class="text-[13px] text-gris">Montos vigentes desde {vigenciaMontos}.</p>}
           </dl>
         </details>
       </div>
@@ -136,7 +144,7 @@ const estadosFiltro = (['llamado', 'evaluacion', 'tramite', 'adjudicada', 'desie
       </form>
 
       <p class="mt-6 text-sm text-gris" role="status">
-        {filas.length === 1 ? '1 procedimiento' : `${filas.length} procedimientos`}{filtrando ? ' con esos filtros' : ''}.
+        {filas.length === 1 ? '1 procedimiento' : paginas > 1 ? `${desde}–${hasta} de ${filas.length} procedimientos` : `${filas.length} procedimientos`}{filtrando ? ' con esos filtros' : ''}.
       </p>
 
       {
@@ -160,6 +168,7 @@ const estadosFiltro = (['llamado', 'evaluacion', 'tramite', 'adjudicada', 'desie
           ))
         )
       }
+      <Paginacion pagina={pagina} paginas={paginas} ruta="/" ancla="#titulo-listado" />
     </div>
   </section>
 </Publico>

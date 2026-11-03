@@ -40,7 +40,7 @@ const { procedimientoId, nombre, lista, publicado, editable, categorias, noDispo
       <ul class="mt-4 divide-y divide-linea border-y border-linea">
         {lista.map((d) => (
           <li class="flex flex-wrap items-center gap-3 py-3">
-            <span class:list={['grid size-10 shrink-0 place-items-center rounded-md', d.publico ? 'bg-rojo-claro text-rojo' : 'bg-neutro-fondo text-neutro']}>
+            <span class:list={['grid size-10 shrink-0 place-items-center rounded-md', d.publico ? 'bg-marca-claro text-marca' : 'bg-neutro-fondo text-neutro']}>
               <IconoArchivo mime={d.mime} tamano={22} />
             </span>
             <div class="min-w-0 flex-1">
@@ -104,7 +104,7 @@ const { procedimientoId, nombre, lista, publicado, editable, categorias, noDispo
     editable && (
       <div class="mt-5" data-subida data-procedimiento={procedimientoId} data-nombre={nombre} data-publicado={publicado ? 'si' : 'no'}>
         <label
-          class="flex cursor-pointer flex-col items-center gap-2 rounded-lg border-2 border-dashed border-linea px-4 py-7 text-center hover:border-gris data-[arrastrando]:border-rojo data-[arrastrando]:bg-rojo-claro"
+          class="flex cursor-pointer flex-col items-center gap-2 rounded-lg border-2 border-dashed border-linea px-4 py-7 text-center hover:border-gris data-[arrastrando]:border-marca data-[arrastrando]:bg-marca-claro"
           data-zona
         >
           <Icono svg={subir} tamano={28} class="text-gris" />
@@ -149,7 +149,7 @@ const { procedimientoId, nombre, lista, publicado, editable, categorias, noDispo
                 </select>
               </div>
               <label class="flex items-center gap-2 py-2 text-sm">
-                <input type="checkbox" class="size-4 accent-rojo" checked data-publico /> Público
+                <input type="checkbox" class="size-4 accent-marca" checked data-publico /> Público
               </label>
             </div>
           </li>

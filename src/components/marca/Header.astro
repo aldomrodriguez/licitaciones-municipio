@@ -1,42 +1,58 @@
 ---
-import marca from './marca.json';
+import { altoPara, urlImagen } from '../../lib/configuracion';
 import menu from '@tabler/icons/outline/menu-2.svg?raw';
 import cerrar from '@tabler/icons/outline/x.svg?raw';
 import Icono from '../ui/Icono.astro';
+
+const { nombre, direccion, sitioUrl, textoVolver, logo, nav, destacado } = Astro.locals.sitio;
+const inicio = sitioUrl || '/';
 ---
 
 <div class="bg-noche text-xs text-[#d8dadd]">
   <div class="contenedor flex min-h-[34px] items-center justify-end gap-6 sm:justify-between">
-    <span class="hidden sm:inline">Salgado 40, Lobos, Buenos Aires</span>
-    <a href={marca.inicio} class="hover:text-white">Volver al sitio del Municipio</a>
+    <span class="hidden sm:inline">{direccion}</span>
+    {sitioUrl && <a href={sitioUrl} class="hover:text-white">{textoVolver}</a>}
   </div>
 </div>
 <header class="relative bg-tinta text-white" data-header>
   <div class="contenedor flex min-h-[78px] items-center gap-6 lg:min-h-[86px]">
-    <a href={marca.inicio} class="mr-auto block w-[125px] shrink-0 sm:w-[145px]" aria-label="Municipio de Lobos, inicio">
-      <img src="/marca/logo-municipio-lobos.png" alt="" width="145" height="85" class="h-auto max-h-[66px] w-auto max-w-full" />
-    </a>
+    {
+      logo ? (
+        <a href={inicio} class="mr-auto block w-[125px] shrink-0 sm:w-[145px]" aria-label={`${nombre}, inicio`}>
+          <img src={urlImagen(logo)} alt="" width="145" height={altoPara(logo, 145)} class="h-auto max-h-[66px] w-auto max-w-full" />
+        </a>
+      ) : (
+        <a href={inicio} class="mr-auto block max-w-[260px] text-lg leading-tight font-bold" aria-label={`${nombre}, inicio`}>
+          {nombre}
+        </a>
+      )
+    }
     <nav
       id="menu-principal"
       aria-label="Navegación principal"
       class="absolute inset-x-4 top-[calc(100%+8px)] z-50 hidden flex-col rounded-[10px] bg-white p-2 text-tinta shadow-2xl data-[abierto]:flex lg:static lg:flex lg:flex-row lg:gap-7 lg:bg-transparent lg:p-0 lg:text-white lg:shadow-none"
     >
       {
-        marca.nav.map((l) => (
+        nav.map((l) => (
           <a
             href={l.href}
-            class="rounded-md px-3.5 py-3 text-sm font-bold hover:bg-papel hover:text-rojo lg:px-0 lg:py-8 lg:hover:bg-transparent lg:hover:text-white lg:hover:underline lg:underline-offset-8"
+            class="rounded-md px-3.5 py-3 text-sm font-bold hover:bg-papel hover:text-marca lg:px-0 lg:py-8 lg:hover:bg-transparent lg:hover:text-white lg:hover:underline lg:underline-offset-8"
           >
             {l.texto}
           </a>
         ))
       }
     </nav>
-    <a href={marca.tramites.href} class="hidden rounded-md bg-rojo px-[18px] py-[13px] text-sm font-bold hover:bg-rojo-oscuro lg:inline-block">
-      {marca.tramites.texto}
-    </a>
+    {
+      destacado && (
+        <a href={destacado.href} class="hidden rounded-md bg-marca px-[18px] py-[13px] text-sm font-bold hover:bg-marca-oscuro lg:inline-block">
+          {destacado.texto}
+        </a>
+      )
+    }
     <button
       type="button"
+      hidden={nav.length === 0}
       class="grid size-11 place-items-center rounded-md hover:bg-white/10 lg:hidden"
       aria-controls="menu-principal"
       aria-expanded="false"

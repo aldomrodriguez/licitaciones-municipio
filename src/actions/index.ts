@@ -14,6 +14,9 @@ import { desdeFechaInput, parsearMonto } from '../lib/formato';
 import { borrarArchivo } from '../lib/archivos';
 import { cerrarSesionesDe, hashear, validarClave } from '../lib/auth';
 import * as P from '../lib/procedimientos';
+import * as C from '../lib/configuracion';
+import { derivarColores } from '../lib/color';
+import { borrarImagenMarca } from '../lib/marca-archivos';
 
 // Mensajes de validación genéricos en español.
 z.config(z.locales.es());
@@ -36,6 +39,25 @@ function ejecutar<T>(fn: () => T): T {
     return fn();
   } catch (e) {
     if (e instanceof P.ErrorNegocio) throw new ActionError({ code: 'BAD_REQUEST', message: e.errores.join('\n') });
+    throw e;
+  }
+}
+
+/** Listas que el editor del panel manda como JSON en un campo oculto. */
+const json = z.string().transform((v, c) => {
+  try {
+    return JSON.parse(v) as unknown;
+  } catch {
+    c.addIssue({ code: 'custom', message: 'No se pudo leer la lista. Recargá la página y probá de nuevo.' });
+    return z.NEVER;
+  }
+});
+
+function configurar<T>(fn: () => T): T {
+  try {
+    return fn();
+  } catch (e) {
+    if (e instanceof C.ErrorConfiguracion) throw new ActionError({ code: 'BAD_REQUEST', message: e.message });
     throw e;
   }
 }
@@ -278,6 +300,86 @@ export const server = {
       const error = validarClave(nueva) ?? (nueva !== repetir ? 'Las contraseñas no coinciden.' : null);
       if (error) throw new ActionError({ code: 'BAD_REQUEST', message: error });
       db().update(usuarios).set({ hash: await hashear(nueva) }).where(eq(usuarios.id, a.id!)).run();
+      return { ok: true };
+    },
+  }),
+
+  // ─── Configuración del sitio (solo admin) ──────────────────────────────────
+
+  guardarIdentidad: defineAction({
+    accept: 'form',
+    input: z.object({ nombre: z.string(), color: z.string().trim().toLowerCase() }),
+    handler: ({ nombre, color }, ctx) => {
+      const a = soloAdmin(ctx);
+      const actual = C.leerConfiguracion(db());
+      // Si el color no cambió se conservan los tonos actuales (pueden venir ajustados a mano).
+      const colores = color === actual.colores.marca ? actual.colores : derivarColores(color);
+      return { cambios: configurar(() => C.guardarSeccion(db(), a.nombre, 'identidad', { nombre, colores })).length };
+    },
+  }),
+
+  guardarEncabezado: defineAction({
+    accept: 'form',
+    input: z.object({
+      direccion: z.string().nullish(),
+      sitioUrl: z.string().nullish(),
+      textoVolver: z.string().nullish(),
+      migas: json,
+      nav: json,
+      destacadoTexto: z.string().nullish(),
+      destacadoHref: z.string().nullish(),
+      lema: z.string().nullish(),
+      columnas: json,
+    }),
+    handler: (i, ctx) => {
+      const a = soloAdmin(ctx);
+      const texto = i.destacadoTexto?.trim() ?? '';
+      const href = i.destacadoHref?.trim() ?? '';
+      if (Boolean(texto) !== Boolean(href)) {
+        throw new ActionError({ code: 'BAD_REQUEST', message: 'El botón destacado necesita texto y link, o ninguno de los dos.' });
+      }
+      const parcial = {
+        direccion: i.direccion ?? '',
+        sitioUrl: i.sitioUrl?.trim() ?? '',
+        textoVolver: i.textoVolver?.trim() || C.CONFIG_GENERICA.textoVolver,
+        migas: i.migas,
+        nav: i.nav,
+        destacado: texto ? { texto, href } : null,
+        lema: i.lema ?? '',
+        columnas: i.columnas,
+      } as Partial<C.ConfigSitio>;
+      return { cambios: configurar(() => C.guardarSeccion(db(), a.nombre, 'encabezado', parcial)).length };
+    },
+  }),
+
+  guardarTextos: defineAction({
+    accept: 'form',
+    input: z.object({
+      queEs: z.string(),
+      publica: z.string(),
+      privada: z.string(),
+      concurso: z.string(),
+      vigenciaMontos: z.string().nullish(),
+    }),
+    handler: (i, ctx) => {
+      const a = soloAdmin(ctx);
+      const parcial = {
+        queEs: i.queEs,
+        modalidades: { publica: i.publica, privada: i.privada, concurso: i.concurso },
+        vigenciaMontos: i.vigenciaMontos ?? '',
+      };
+      return { cambios: configurar(() => C.guardarSeccion(db(), a.nombre, 'textos', parcial)).length };
+    },
+  }),
+
+  quitarImagenMarca: defineAction({
+    accept: 'form',
+    input: z.object({ clase: z.enum(['logo', 'favicon']) }),
+    handler: async ({ clase }, ctx) => {
+      const a = soloAdmin(ctx);
+      const anterior = C.leerConfiguracion(db())[clase];
+      configurar(() => C.guardarSeccion(db(), a.nombre, 'identidad', { [clase]: null }));
+      await borrarImagenMarca(anterior?.archivo);
       return { ok: true };
     },
   }),

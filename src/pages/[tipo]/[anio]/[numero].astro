@@ -13,7 +13,6 @@ import { formatearFecha, formatearFechaHora, formatearMonto, formatearTamano } f
 import { etiquetaFormato } from '../../../lib/archivos-cliente';
 import { urlDescargaPublica } from '../../../lib/rutas';
 import { describirEntradaPublica } from '../../../lib/historial-texto';
-import marca from '../../../components/marca/marca.json';
 
 const { tipo, anio, numero } = Astro.params;
 const anioN = Number(anio);
@@ -35,12 +34,14 @@ if (p.invitados != null) datos.push(['Proveedores invitados', String(p.invitados
 if (p.cantidadOfertantes != null) datos.push(['Ofertas recibidas', String(p.cantidadOfertantes)]);
 if (p.areaSolicitante) datos.push(['Área solicitante', p.areaSolicitante]);
 
+const primeraMiga = Astro.locals.sitio.migas[0];
+
 const jsonLd = {
   '@context': 'https://schema.org',
   '@type': 'GovernmentService',
   name: nombre,
   description: p.objeto,
-  provider: { '@type': 'GovernmentOrganization', name: 'Municipio de Lobos' },
+  provider: { '@type': 'GovernmentOrganization', name: Astro.locals.sitio.nombre },
 };
 ---
 
@@ -49,8 +50,14 @@ const jsonLd = {
     <div class="contenedor py-10 sm:py-14">
       <nav aria-label="Ubicación" class="mb-8 text-xs text-gris">
         <ol class="flex flex-wrap items-center gap-2.5">
-          <li><a href={marca.inicio} class="hover:text-tinta hover:underline">Inicio</a></li>
-          <li aria-hidden="true">›</li>
+          {
+            primeraMiga && (
+              <>
+                <li><a href={primeraMiga.href} class="hover:text-tinta hover:underline">{primeraMiga.texto}</a></li>
+                <li aria-hidden="true">›</li>
+              </>
+            )
+          }
           <li><a href="/" class="hover:text-tinta hover:underline">Licitaciones</a></li>
           <li aria-hidden="true">›</li>
           <li><b class="text-tinta" aria-current="page">{TIPOS[p.tipo].corto} {p.numero}/{p.anio}</b></li>
@@ -139,16 +146,16 @@ const jsonLd = {
               {d.documentos.map((doc) => (
                 <li>
                   <a href={urlDescargaPublica(doc.id)} class="group flex items-center gap-4 py-4 hover:bg-papel sm:px-3" download>
-                    <span class="grid size-11 shrink-0 place-items-center rounded-md bg-rojo-claro text-rojo">
+                    <span class="grid size-11 shrink-0 place-items-center rounded-md bg-marca-claro text-marca">
                       <IconoArchivo mime={doc.mime} />
                     </span>
                     <span class="min-w-0 flex-1">
-                      <span class="block font-semibold group-hover:text-rojo">{doc.titulo}</span>
+                      <span class="block font-semibold group-hover:text-marca">{doc.titulo}</span>
                       <span class="cifras block text-sm text-gris">
                         {doc.categoria}. {etiquetaFormato(doc.mime)}, {formatearTamano(doc.tamano)}, publicado el {formatearFecha(doc.subidoEn, 'corta')}
                       </span>
                     </span>
-                    <span class="hidden items-center gap-1.5 text-sm font-semibold text-rojo sm:flex">
+                    <span class="hidden items-center gap-1.5 text-sm font-semibold text-marca sm:flex">
                       <Icono svg={descarga} tamano={18} /> Descargar
                     </span>
                     <span class="sr-only">(descargar {etiquetaFormato(doc.mime)})</span>

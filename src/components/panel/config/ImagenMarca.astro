@@ -1,0 +1,80 @@
+---
+/**
+ * Logo o favicon actual con su reemplazo. Al elegir un archivo se muestra la vista previa
+ * y recién al confirmar se sube (src/scripts/configuracion.ts).
+ */
+import Icono from '../../ui/Icono.astro';
+import foto from '@tabler/icons/outline/photo.svg?raw';
+import { urlImagen, type ImagenMarca } from '../../../lib/configuracion';
+
+interface Props {
+  clase: 'logo' | 'favicon';
+  imagen: ImagenMarca | null;
+  nombre: string;
+}
+const { clase, imagen, nombre } = Astro.props;
+const esLogo = clase === 'logo';
+const titulo = esLogo ? 'Logo' : 'Ícono de la pestaña';
+const id = `img-${clase}`;
+const ayuda = esLogo
+  ? 'PNG, JPG o WebP de hasta 2 MB, con fondo transparente y en versión clara: va sobre el header oscuro. Se muestra con 145 px de ancho en el header y 190 px en el footer; conviene que tenga al menos 400 px de ancho.'
+  : 'Imagen cuadrada PNG, JPG o WebP de al menos 64 × 64 px. Si no subís una, se usa el logo.';
+---
+
+<div data-imagen-marca data-clase={clase} data-titulo={titulo} role="group" aria-labelledby={`${id}-titulo`}>
+  <p id={`${id}-titulo`} class="etiqueta">{titulo}</p>
+  <div class:list={['grid place-items-center rounded-lg border border-linea', esLogo ? 'h-[120px] bg-tinta px-4' : 'size-[120px] bg-papel']}>
+    {
+      imagen ? (
+        <img
+          src={urlImagen(imagen)}
+          alt={esLogo ? `Logo actual de ${nombre}` : 'Ícono actual'}
+          class:list={[esLogo ? 'max-h-[66px] w-[145px] object-contain' : 'size-12']}
+          data-actual
+        />
+      ) : (
+        <span class:list={['flex flex-col items-center gap-1 text-[13px]', esLogo ? 'text-white/70' : 'text-gris']} data-actual>
+          <Icono svg={foto} tamano={22} />
+          {esLogo ? 'Sin logo: se muestra el nombre' : 'Sin ícono'}
+        </span>
+      )
+    }
+  </div>
+  {imagen && <p class="ayuda">{imagen.ancho} × {imagen.alto} px</p>}
+
+  <div data-vista hidden class="mt-3 rounded-lg border-2 border-dashed border-marca p-3">
+    <p class="text-sm font-semibold">Vista previa de <span data-vista-nombre></span></p>
+    <div class:list={['mt-2 grid place-items-center rounded-md', esLogo ? 'h-[100px] bg-tinta px-4' : 'size-[96px] bg-papel']}>
+      <img alt="Vista previa de la imagen elegida" class:list={[esLogo ? 'max-h-[66px] w-[145px] object-contain' : 'size-12']} data-vista-img />
+    </div>
+    <div class="mt-3 flex flex-wrap gap-2">
+      <button type="button" class="btn-primario py-2" data-usar>Usar esta imagen</button>
+      <button type="button" class="btn-secundario py-2" data-descartar>Descartar</button>
+    </div>
+  </div>
+
+  <div class="mt-3 flex flex-wrap gap-2" data-acciones>
+    <label class="btn-secundario cursor-pointer py-2 focus-within:outline-2 focus-within:outline-marca">
+      {imagen ? 'Cambiar' : 'Subir'} {esLogo ? 'logo' : 'ícono'}
+      <input type="file" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" class="sr-only" data-elegir aria-describedby={`${id}-ayuda`} />
+    </label>
+    {
+      imagen && (
+        <form
+          method="post"
+          data-accion="quitarImagenMarca"
+          data-titulo={esLogo ? '¿Quitar el logo?' : '¿Quitar el ícono?'}
+          data-detalle={esLogo ? 'En el header, el footer, el login y el panel se va a mostrar el nombre en texto.' : 'La pestaña del navegador va a usar el logo, o un ícono genérico si no hay logo.'}
+          data-tono="peligro"
+          data-boton="Quitar"
+          data-exito={esLogo ? 'Logo quitado.' : 'Ícono quitado.'}
+        >
+          <input type="hidden" name="clase" value={clase} />
+          <button type="submit" class="btn-fantasma py-2 hover:text-peligro">Quitar</button>
+        </form>
+      )
+    }
+  </div>
+  <p id={`${id}-ayuda`} class="ayuda">{ayuda}</p>
+  <p class="mt-2 rounded-md bg-peligro-fondo px-3 py-2 text-sm text-peligro" role="alert" data-error hidden></p>
+</div>

@@ -1,12 +1,13 @@
 ---
 import '../styles/global.css';
 import ConfirmDialog from '../components/panel/ConfirmDialog.astro';
+import NavPanel from '../components/panel/NavPanel.astro';
+import Cabeza from '../components/marca/Cabeza.astro';
 import Icono from '../components/ui/Icono.astro';
-import iconoLista from '@tabler/icons/outline/list-details.svg?raw';
-import iconoPapelera from '@tabler/icons/outline/trash.svg?raw';
-import iconoUsuarios from '@tabler/icons/outline/users.svg?raw';
-import iconoSalir from '@tabler/icons/outline/logout.svg?raw';
-import iconoSitio from '@tabler/icons/outline/external-link.svg?raw';
+import iconoMenu from '@tabler/icons/outline/menu-2.svg?raw';
+import iconoCerrar from '@tabler/icons/outline/x.svg?raw';
+import { db } from '../lib/db';
+import { altoPara, estaConfigurado, urlImagen } from '../lib/configuracion';
 
 interface Props {
   titulo: string;
@@ -14,13 +15,8 @@ interface Props {
 const { titulo } = Astro.props;
 const usuario = Astro.locals.usuario!;
 const ruta = Astro.url.pathname;
-const secciones = [
-  { href: '/panel', texto: 'Procedimientos', icono: iconoLista, activo: ruta === '/panel' || ruta.startsWith('/panel/procedimientos') || ruta === '/panel/nuevo' },
-  { href: '/panel/papelera', texto: 'Papelera', icono: iconoPapelera, activo: ruta.startsWith('/panel/papelera') },
-  ...(usuario.rol === 'admin'
-    ? [{ href: '/panel/usuarios', texto: 'Usuarios', icono: iconoUsuarios, activo: ruta.startsWith('/panel/usuarios') }]
-    : []),
-];
+const sitio = Astro.locals.sitio;
+const pendiente = usuario.rol === 'admin' && !ruta.startsWith('/panel/configuracion') && !estaConfigurado(db());
 ---
 
 <!doctype html>
@@ -30,60 +26,96 @@ const secciones = [
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex, nofollow" />
     <title>{titulo} | Panel de licitaciones</title>
-    <link rel="icon" href="/favicon.png" />
+    <Cabeza />
     <link rel="preload" href="/fonts/geist.woff2" as="font" type="font/woff2" crossorigin />
   </head>
-  <body class="flex min-h-dvh flex-col bg-papel">
-    <a href="#contenido" class="sr-only z-50 rounded bg-white px-4 py-2 font-semibold focus:not-sr-only focus:fixed focus:top-2 focus:left-2">
+  <body class="min-h-dvh bg-papel">
+    <a href="#contenido" class="sr-only z-[70] rounded bg-white px-4 py-2 font-semibold focus:not-sr-only focus:fixed focus:top-2 focus:left-2">
       Ir al contenido
     </a>
-    <header class="border-b-4 border-rojo bg-tinta text-white">
-      <div class="contenedor flex min-h-16 flex-wrap items-center gap-x-6 gap-y-2 py-2">
-        <a href="/panel" class="flex items-center gap-3">
-          <img src="/marca/logo-municipio-lobos.png" alt="Municipio de Lobos" width="82" height="48" class="h-10 w-auto" />
-          <span class="border-l border-white/25 pl-3 text-sm leading-tight font-semibold">Licitaciones<br /><span class="font-normal text-white/65">Panel de carga</span></span>
-        </a>
-        <nav aria-label="Secciones del panel" class="order-last flex w-full gap-1 overflow-x-auto sm:order-none sm:w-auto">
-          {
-            secciones.map((s) => (
-              <a
-                href={s.href}
-                aria-current={s.activo ? 'page' : undefined}
-                class:list={[
-                  'flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold whitespace-nowrap',
-                  s.activo ? 'bg-white/12 text-white' : 'text-white/70 hover:bg-white/8 hover:text-white',
-                ]}
-              >
-                <Icono svg={s.icono} tamano={18} />
-                {s.texto}
-              </a>
-            ))
-          }
-        </nav>
-        <div class="ml-auto flex items-center gap-1 text-sm">
-          <a href="/" target="_blank" class="hidden items-center gap-1.5 rounded-md px-3 py-2 text-white/70 hover:text-white md:flex">
-            <Icono svg={iconoSitio} tamano={16} /> Ver sitio público
-          </a>
-          <a href="/panel/cuenta" class="rounded-md px-3 py-2 text-white/85 hover:bg-white/8 hover:text-white" title="Mi cuenta">
-            {usuario.nombre}{usuario.rol === 'admin' && <span class="ml-1 text-white/55">(admin)</span>}
-          </a>
-          <form method="post" action="/panel/salir">
-            <button type="submit" class="flex items-center gap-1.5 rounded-md px-3 py-2 text-white/70 hover:bg-white/8 hover:text-white">
-              <Icono svg={iconoSalir} tamano={18} /> Salir
-            </button>
-          </form>
-        </div>
-      </div>
+
+    <!-- Escritorio: barra lateral fija -->
+    <aside class="fixed inset-y-0 left-0 z-40 hidden w-64 border-r-4 border-marca bg-tinta text-white lg:block">
+      <NavPanel etiqueta="Secciones del panel" />
+    </aside>
+
+    <!-- Celular y tablet: barra superior con menú lateral -->
+    <header class="sticky top-0 z-40 flex min-h-14 items-center gap-3 border-b-4 border-marca bg-tinta px-3 text-white lg:hidden">
+      <button type="button" class="grid size-11 place-items-center rounded-md hover:bg-white/10" aria-haspopup="dialog" aria-controls="menu-panel" data-abrir-menu>
+        <Icono svg={iconoMenu} tamano={24} />
+        <span class="sr-only">Abrir menú</span>
+      </button>
+      <a href="/panel" class="flex min-w-0 items-center gap-2.5">
+        {sitio.logo ? <img src={urlImagen(sitio.logo)} alt={sitio.nombre} width="60" height={altoPara(sitio.logo, 60)} class="h-8 w-auto max-w-[90px] object-contain" /> : <span class="truncate text-sm font-bold">{sitio.nombre}</span>}
+        <span class="border-l border-white/25 pl-2.5 text-sm font-semibold">Licitaciones</span>
+      </a>
     </header>
-    <main id="contenido" class="contenedor flex-1 py-8 sm:py-10">
-      <slot />
-    </main>
+    <dialog
+      id="menu-panel"
+      aria-label="Menú del panel"
+      class="m-0 h-dvh max-h-none w-[min(288px,85vw)] max-w-none bg-tinta p-0 text-white backdrop:bg-black/50 open:animate-[deslizar_.18s_ease-out] lg:hidden"
+    >
+      <button type="button" class="absolute top-4 right-3 z-10 grid size-10 place-items-center rounded-md text-white/80 hover:bg-white/10 hover:text-white" data-cerrar-menu>
+        <Icono svg={iconoCerrar} tamano={22} />
+        <span class="sr-only">Cerrar menú</span>
+      </button>
+      <NavPanel etiqueta="Secciones del panel (menú)" />
+    </dialog>
+
+    <div class="lg:pl-64">
+      {
+        pendiente && (
+          <div class="border-b border-alerta/30 bg-alerta-fondo">
+            <p class="mx-auto max-w-[1240px] px-4 py-2.5 text-sm sm:px-6 lg:px-10">
+              El sitio público todavía muestra un nombre y colores genéricos.{' '}
+              <a href="/panel/configuracion" class="font-semibold underline underline-offset-2">Configurar el sitio</a>
+            </p>
+          </div>
+        )
+      }
+      <main id="contenido" class="mx-auto max-w-[1240px] px-4 py-8 sm:px-6 sm:py-10 lg:px-10">
+        <slot />
+      </main>
+    </div>
+
     <ConfirmDialog />
+    <style is:global>
+      @keyframes deslizar {
+        from {
+          transform: translateX(-100%);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #menu-panel {
+          animation: none;
+        }
+      }
+    </style>
     <script>
       import { iniciarFormularios } from '../scripts/formularios';
       import { mejorarControles } from '../scripts/controles';
       mejorarControles();
       iniciarFormularios();
+
+      // Menú lateral del celular: <dialog> modal (atrapa el foco, Esc cierra, el foco vuelve al botón).
+      const menu = document.getElementById('menu-panel') as HTMLDialogElement | null;
+      const abrir = document.querySelector<HTMLButtonElement>('[data-abrir-menu]');
+      if (menu && abrir) {
+        abrir.addEventListener('click', () => {
+          menu.showModal();
+          abrir.setAttribute('aria-expanded', 'true');
+        });
+        menu.querySelector('[data-cerrar-menu]')?.addEventListener('click', () => menu.close());
+        // Tocar el fondo oscuro cierra.
+        menu.addEventListener('click', (e) => {
+          if (e.target === menu) menu.close();
+        });
+        menu.addEventListener('close', () => {
+          abrir.setAttribute('aria-expanded', 'false');
+          abrir.focus();
+        });
+        abrir.setAttribute('aria-expanded', 'false');
+      }
     </script>
   </body>
 </html>

@@ -4,7 +4,7 @@ import { listarPublico } from '../lib/procedimientos';
 import { urlPublica } from '../lib/rutas';
 
 export const GET: APIRoute = ({ site }) => {
-  const base = site ?? new URL('https://licitaciones.municipiodelobos.gob.ar');
+  const base = site ?? new URL('http://localhost:4321');
   const urls = [
     `<url><loc>${new URL('/', base)}</loc></url>`,
     ...listarPublico(db(), {}).map(

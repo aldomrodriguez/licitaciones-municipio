@@ -1,0 +1,30 @@
+---
+/** Una fila del editor de links. `id` único dentro de la página (en la plantilla va «__N__»). */
+import Icono from '../../ui/Icono.astro';
+import arriba from '@tabler/icons/outline/arrow-up.svg?raw';
+import abajo from '@tabler/icons/outline/arrow-down.svg?raw';
+import quitar from '@tabler/icons/outline/trash.svg?raw';
+import type { Enlace } from '../../../lib/configuracion';
+
+interface Props {
+  id: string;
+  enlace?: Enlace;
+}
+const { id, enlace } = Astro.props;
+---
+
+<li data-fila class="grid gap-2 rounded-md border border-linea bg-papel/60 p-2.5 sm:grid-cols-[1fr_1.5fr_auto] sm:items-center sm:border-0 sm:bg-transparent sm:p-0">
+  <div>
+    <label for={`${id}-texto`} class="etiqueta text-[13px] sm:sr-only">Texto</label>
+    <input id={`${id}-texto`} data-texto required maxlength="60" value={enlace?.texto ?? ''} class="campo py-2" placeholder="Texto visible" />
+  </div>
+  <div>
+    <label for={`${id}-href`} class="etiqueta text-[13px] sm:sr-only">Link</label>
+    <input id={`${id}-href`} data-href required type="url" maxlength="500" value={enlace?.href ?? ''} class="campo py-2" placeholder="https://… · mailto:… · tel:…" />
+  </div>
+  <div class="flex justify-end gap-0.5">
+    <button type="button" class="btn-fantasma p-2" data-subir aria-label="Subir"><Icono svg={arriba} tamano={16} /></button>
+    <button type="button" class="btn-fantasma p-2" data-bajar aria-label="Bajar"><Icono svg={abajo} tamano={16} /></button>
+    <button type="button" class="btn-fantasma p-2 hover:text-peligro" data-quitar aria-label="Quitar"><Icono svg={quitar} tamano={16} /></button>
+  </div>
+</li>

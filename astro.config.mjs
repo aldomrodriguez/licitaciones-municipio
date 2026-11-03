@@ -3,7 +3,8 @@ import { defineConfig } from 'astro/config';
 import tailwindcss from '@tailwindcss/vite';
 import node from '@astrojs/node';
 
-const site = process.env.SITE_URL ?? 'https://licitaciones.municipiodelobos.gob.ar';
+// Dominio público del micrositio. Queda fijo en el build (ver Dockerfile).
+const site = process.env.SITE_URL || 'http://localhost:4321';
 
 export default defineConfig({
   site,

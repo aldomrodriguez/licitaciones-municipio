@@ -1,0 +1,273 @@
+---
+import Panel from '../../layouts/Panel.astro';
+import EditorEnlaces from '../../components/panel/config/EditorEnlaces.astro';
+import EditorColumnas from '../../components/panel/config/EditorColumnas.astro';
+import ImagenMarca from '../../components/panel/config/ImagenMarca.astro';
+import { db } from '../../lib/db';
+import { cambiosRecientes, estaConfigurado } from '../../lib/configuracion';
+import { TIPOS, LISTA_TIPOS } from '../../lib/estados';
+import { formatearFechaHora } from '../../lib/formato';
+
+if (Astro.locals.usuario?.rol !== 'admin') return Astro.redirect('/panel');
+
+const s = Astro.locals.sitio;
+const conexion = db();
+const configurado = estaConfigurado(conexion);
+const registro = cambiosRecientes(conexion);
+
+/** Colores sugeridos: todos con contraste suficiente para texto blanco. */
+const SUGERIDOS = [
+  ['#d52027', 'Rojo'],
+  ['#b4235a', 'Bordó'],
+  ['#2b5d8a', 'Azul'],
+  ['#1d4ed8', 'Azul eléctrico'],
+  ['#0f6b5c', 'Verde azulado'],
+  ['#2e7d32', 'Verde'],
+  ['#6b3fa0', 'Violeta'],
+  ['#9a4a00', 'Naranja tostado'],
+  ['#3d4752', 'Gris pizarra'],
+];
+---
+
+<Panel titulo="Configuración del sitio">
+  <h1 class="text-3xl font-bold tracking-tight">Configuración del sitio</h1>
+  <p class="mt-1 max-w-[680px] text-gris">
+    Nombre, logo, colores, header, footer y textos del sitio público. Cada sección se guarda por separado y los cambios se ven al instante.
+  </p>
+  {
+    !configurado && (
+      <p class="mt-5 max-w-[860px] rounded-lg border-l-4 border-alerta bg-alerta-fondo px-4 py-3 text-sm">
+        <b>El sitio todavía usa la configuración genérica.</b> Completá al menos el nombre del organismo y el logo antes de publicarlo.
+      </p>
+    )
+  }
+
+  <div class="mt-8 grid max-w-[860px] gap-8">
+    <!-- ─── Identidad ─────────────────────────────────────────────────────── -->
+    <section aria-labelledby="t-identidad" class="rounded-lg border border-linea bg-white p-5 sm:p-6">
+      <h2 id="t-identidad" class="text-lg font-bold">Identidad</h2>
+      <form
+        method="post"
+        class="mt-5 space-y-6"
+        data-accion="guardarIdentidad"
+        data-diff
+        data-titulo="¿Guardar la identidad?"
+        data-detalle="El cambio se ve enseguida en todo el sitio y en el panel. Queda en el registro de cambios."
+        data-boton="Guardar identidad"
+        data-exito="Identidad guardada."
+        data-form-identidad
+      >
+        <div>
+          <label for="nombre" class="etiqueta">Nombre del organismo</label>
+          <input id="nombre" name="nombre" required minlength="3" maxlength="80" value={s.nombre} class="campo" data-etiqueta="Nombre del organismo" aria-describedby="nombre-ayuda" />
+          <p id="nombre-ayuda" class="ayuda">Tal como querés que aparezca: «Municipio de …». Se usa en los títulos, el footer y para buscadores.</p>
+        </div>
+
+        <fieldset>
+          <legend class="etiqueta">Color principal</legend>
+          <div class="flex flex-wrap items-center gap-2" role="radiogroup" aria-label="Colores sugeridos">
+            {
+              SUGERIDOS.map(([hex, nombre]) => (
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={hex === s.colores.marca ? 'true' : 'false'}
+                  aria-label={nombre}
+                  title={nombre}
+                  data-color={hex}
+                  class="size-9 rounded-full border-2 border-white shadow-[0_0_0_1px_var(--color-linea)] aria-checked:shadow-[0_0_0_2px_var(--color-tinta)]"
+                  style={`background:${hex}`}
+                />
+              ))
+            }
+          </div>
+          <div class="mt-3 flex flex-wrap items-start gap-3">
+            <div class="w-[150px]">
+              <label for="color" class="etiqueta text-[13px]">Código del color</label>
+              <input
+                id="color"
+                name="color"
+                required
+                pattern="#[0-9a-fA-F]{6}"
+                maxlength="7"
+                value={s.colores.marca}
+                class="campo cifras"
+                data-etiqueta="Color principal"
+                aria-describedby="color-estado"
+                autocomplete="off"
+                spellcheck="false"
+              />
+            </div>
+            <p id="color-estado" class="ayuda mt-7 flex-1" aria-live="polite">Formato #RRGGBB. Los tonos más claros y más oscuros se calculan solos.</p>
+          </div>
+
+          <div class="mt-4 overflow-hidden rounded-lg border border-linea" aria-label="Vista previa del color" role="img" data-vista-color>
+            <div class="flex items-center justify-between gap-3 bg-tinta px-4 py-3 text-sm text-white">
+              <b>{s.nombre}</b>
+              <span class="rounded-md bg-marca px-3 py-2 text-[13px] font-bold" data-muestra-fondo>Botón destacado</span>
+            </div>
+            <div class="bg-marca px-4 py-4 text-white" data-muestra-fondo>
+              <p class="text-lg font-bold">Licitaciones y concursos</p>
+              <p class="text-sm text-marca-sobre-marca" data-muestra-sobre-marca>Texto de la portada sobre el color.</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-4 bg-white px-4 py-3 text-sm">
+              <span class="font-semibold text-marca" data-muestra-texto>Un link del sitio</span>
+              <span class="rounded-md bg-marca px-3 py-1.5 font-semibold text-white" data-muestra-fondo>Botón</span>
+            </div>
+            <div class="bg-noche px-4 py-3">
+              <p class="text-[13px] font-bold tracking-[.08em] text-marca-sobre-oscuro uppercase" data-muestra-sobre-oscuro>Título del footer</p>
+            </div>
+          </div>
+        </fieldset>
+
+        <div class="flex justify-end border-t border-linea pt-4">
+          <button type="submit" class="btn-primario">Guardar identidad</button>
+        </div>
+      </form>
+
+      <div class="mt-6 grid gap-6 border-t border-linea pt-6 sm:grid-cols-[1.4fr_1fr]">
+        <ImagenMarca clase="logo" imagen={s.logo} nombre={s.nombre} />
+        <ImagenMarca clase="favicon" imagen={s.favicon} nombre={s.nombre} />
+      </div>
+    </section>
+
+    <!-- ─── Header y footer ───────────────────────────────────────────────── -->
+    <section aria-labelledby="t-encabezado" class="rounded-lg border border-linea bg-white p-5 sm:p-6">
+      <h2 id="t-encabezado" class="text-lg font-bold">Header y footer</h2>
+      <form
+        method="post"
+        class="mt-5 space-y-7"
+        data-accion="guardarEncabezado"
+        data-diff
+        data-titulo="¿Guardar el header y el footer?"
+        data-detalle="Se actualizan en todas las páginas del sitio público. Queda en el registro de cambios."
+        data-boton="Guardar header y footer"
+        data-exito="Header y footer guardados."
+        data-form-encabezado
+      >
+        <fieldset class="space-y-5">
+          <legend class="mb-3 font-semibold">Barra superior</legend>
+          <div>
+            <label for="direccion" class="etiqueta">Dirección <span class="font-normal text-gris">(opcional)</span></label>
+            <input id="direccion" name="direccion" maxlength="120" value={s.direccion} class="campo" data-etiqueta="Dirección (barra superior)" placeholder="Calle 123, Localidad, Provincia" />
+          </div>
+          <div class="grid gap-5 sm:grid-cols-[1.6fr_1fr]">
+            <div>
+              <label for="sitioUrl" class="etiqueta">Sitio principal del organismo <span class="font-normal text-gris">(opcional)</span></label>
+              <input id="sitioUrl" name="sitioUrl" type="url" maxlength="500" value={s.sitioUrl} class="campo" data-etiqueta="Sitio principal" placeholder="https://" aria-describedby="sitio-ayuda" />
+              <p id="sitio-ayuda" class="ayuda">El logo lleva acá. Si está vacío, lleva a la portada de licitaciones.</p>
+            </div>
+            <div>
+              <label for="textoVolver" class="etiqueta">Texto del link</label>
+              <input id="textoVolver" name="textoVolver" maxlength="60" value={s.textoVolver} class="campo" data-etiqueta="Texto del link al sitio principal" />
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset class="space-y-6 border-t border-linea pt-6">
+          <legend class="float-left mb-3 w-full font-semibold">Header</legend>
+          <div class="clear-both">
+            <EditorEnlaces id="nav" nombre="nav" etiqueta="Menú del header" enlaces={s.nav} max={8} ayuda="Los links del menú principal, en orden. En el celular quedan en el menú desplegable." />
+          </div>
+          <div class="grid gap-5 sm:grid-cols-[1fr_1.5fr]">
+            <div>
+              <label for="destacadoTexto" class="etiqueta">Botón destacado <span class="font-normal text-gris">(opcional)</span></label>
+              <input id="destacadoTexto" name="destacadoTexto" maxlength="60" value={s.destacado?.texto ?? ''} class="campo" data-etiqueta="Botón destacado: texto" placeholder="Ej. Trámites online" />
+            </div>
+            <div>
+              <label for="destacadoHref" class="etiqueta">Link del botón</label>
+              <input id="destacadoHref" name="destacadoHref" type="url" maxlength="500" value={s.destacado?.href ?? ''} class="campo" data-etiqueta="Botón destacado: link" placeholder="https://" />
+            </div>
+          </div>
+          <EditorEnlaces id="migas" nombre="migas" etiqueta="Ruta de navegación" enlaces={s.migas} max={4} ayuda="Los niveles que aparecen antes de «Licitaciones» en la portada. Por ejemplo: Inicio › Municipio." />
+        </fieldset>
+
+        <fieldset class="space-y-6 border-t border-linea pt-6">
+          <legend class="float-left mb-3 w-full font-semibold">Footer</legend>
+          <div class="clear-both">
+            <label for="lema" class="etiqueta">Lema <span class="font-normal text-gris">(opcional)</span></label>
+            <textarea id="lema" name="lema" rows="2" maxlength="200" class="campo" data-etiqueta="Lema del footer" aria-describedby="lema-ayuda">{s.lema}</textarea>
+            <p id="lema-ayuda" class="ayuda">Va debajo del logo.</p>
+          </div>
+          <EditorColumnas columnas={s.columnas} />
+        </fieldset>
+
+        <div class="sticky bottom-0 z-10 -mx-5 flex justify-end border-t border-linea bg-white/95 px-5 py-3 backdrop-blur sm:-mx-6 sm:px-6">
+          <button type="submit" class="btn-primario">Guardar header y footer</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ─── Textos ────────────────────────────────────────────────────────── -->
+    <section aria-labelledby="t-textos" class="rounded-lg border border-linea bg-white p-5 sm:p-6">
+      <h2 id="t-textos" class="text-lg font-bold">Textos del sitio</h2>
+      <form
+        method="post"
+        class="mt-5 space-y-5"
+        data-accion="guardarTextos"
+        data-diff
+        data-titulo="¿Guardar los textos?"
+        data-detalle="Se publican enseguida en la portada. Queda en el registro de cambios."
+        data-boton="Guardar textos"
+        data-exito="Textos guardados."
+      >
+        <div>
+          <label for="queEs" class="etiqueta">¿Qué es una licitación?</label>
+          <textarea id="queEs" name="queEs" rows="4" required minlength="20" maxlength="800" class="campo" data-etiqueta="¿Qué es una licitación?" aria-describedby="queEs-ayuda">{s.queEs}</textarea>
+          <p id="queEs-ayuda" class="ayuda">Bajada de la portada, sobre la franja de color.</p>
+        </div>
+        <fieldset class="space-y-4">
+          <legend class="etiqueta">Diferencias entre las modalidades</legend>
+          {
+            LISTA_TIPOS.map((t) => (
+              <div>
+                <label for={`mod-${t}`} class="text-sm text-gris">{TIPOS[t].nombre}</label>
+                <textarea id={`mod-${t}`} name={t} rows="2" required minlength="10" maxlength="600" class="campo mt-1" data-etiqueta={`Modalidad: ${TIPOS[t].nombre}`}>{s.modalidades[t]}</textarea>
+              </div>
+            ))
+          }
+          <div class="max-w-[320px]">
+            <label for="vigenciaMontos" class="etiqueta">Montos vigentes desde <span class="font-normal text-gris">(opcional)</span></label>
+            <input id="vigenciaMontos" name="vigenciaMontos" maxlength="40" value={s.vigenciaMontos} class="campo" data-etiqueta="Vigencia de los montos" placeholder="Ej. enero de 2026" aria-describedby="vig-ayuda" />
+            <p id="vig-ayuda" class="ayuda">Si los textos mencionan montos, actualizalos cuando cambie el decreto.</p>
+          </div>
+        </fieldset>
+        <div class="flex justify-end border-t border-linea pt-4">
+          <button type="submit" class="btn-primario">Guardar textos</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ─── Registro ──────────────────────────────────────────────────────── -->
+    <section aria-labelledby="t-registro" class="rounded-lg border border-linea bg-white p-5 sm:p-6">
+      <h2 id="t-registro" class="text-lg font-bold">Registro de cambios</h2>
+      {
+        registro.length === 0 ? (
+          <p class="mt-3 text-sm text-gris">Todavía no se guardó ningún cambio.</p>
+        ) : (
+          <ol class="mt-4 divide-y divide-linea">
+            {registro.map((r) => (
+              <li class="py-3 text-sm">
+                <p class="text-gris">
+                  <time datetime={r.fecha.toISOString()}>{formatearFechaHora(r.fecha)}</time>, {r.usuarioNombre}. <b class="text-tinta">{r.seccion}</b>
+                </p>
+                <ul class="mt-1.5 space-y-1">
+                  {r.lista.map((c) => (
+                    <li class="break-words">
+                      <span class="font-semibold">{c.campo}:</span> <span class="text-gris line-through decoration-gris/50">{c.antes.length > 140 ? `${c.antes.slice(0, 140)}…` : c.antes}</span> → {c.despues.length > 140 ? `${c.despues.slice(0, 140)}…` : c.despues}
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            ))}
+          </ol>
+        )
+      }
+    </section>
+  </div>
+</Panel>
+
+<script>
+  import { iniciarConfiguracion } from '../../scripts/configuracion';
+  iniciarConfiguracion();
+</script>

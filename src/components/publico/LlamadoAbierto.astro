@@ -19,12 +19,12 @@ const partes = partesFecha(fecha);
       <div class="cifras py-1 text-[56px] leading-none font-extrabold tracking-tight">{partes.dia}</div>
       <div class="border-t border-linea py-1 text-sm font-semibold capitalize">{partes.diaSemana}</div>
     </div>
-    <p class="text-sm font-semibold text-rojo sm:mt-3">{textoCuentaRegresiva(fecha)}</p>
+    <p class="text-sm font-semibold text-marca sm:mt-3">{textoCuentaRegresiva(fecha)}</p>
   </div>
   <div>
     <p class="text-sm font-semibold text-gris">{TIPOS[p.tipo].nombre} n° {p.numero}/{p.anio}</p>
     <h3 class="mt-1 text-xl leading-snug font-bold tracking-tight text-balance sm:text-2xl">
-      <a href={urlPublica(p)} class="hover:text-rojo hover:underline">{p.objeto}</a>
+      <a href={urlPublica(p)} class="hover:text-marca hover:underline">{p.objeto}</a>
     </h3>
     <p class="sr-only">
       Apertura: {partes.diaSemana} {partes.dia} de {partes.mes} de {partes.anio}.

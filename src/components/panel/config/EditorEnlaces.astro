@@ -1,0 +1,40 @@
+---
+/**
+ * Lista editable de links (texto + href). Con `nombre` guarda el JSON en un campo oculto
+ * que entra en el diff de la confirmación; sin `nombre` es una lista interna (columnas del footer).
+ * La lógica está en src/scripts/configuracion.ts.
+ */
+import FilaEnlace from './FilaEnlace.astro';
+import Icono from '../../ui/Icono.astro';
+import mas from '@tabler/icons/outline/plus.svg?raw';
+import type { Enlace } from '../../../lib/configuracion';
+
+interface Props {
+  id: string;
+  etiqueta: string;
+  enlaces: Enlace[];
+  max: number;
+  nombre?: string;
+  ayuda?: string;
+}
+const { id, etiqueta, enlaces, max, nombre, ayuda } = Astro.props;
+const valor = JSON.stringify(enlaces.map((e) => ({ texto: e.texto, href: e.href })));
+---
+
+<div data-editor-enlaces data-max={max} data-etiqueta-lista={etiqueta} data-interno={nombre ? undefined : ''} role="group" aria-labelledby={`${id}-titulo`} aria-describedby={ayuda ? `${id}-ayuda` : undefined}>
+  {nombre && <input type="text" hidden name={nombre} value={valor} data-etiqueta={etiqueta} data-lista />}
+  <p id={`${id}-titulo`} class="etiqueta">{etiqueta}</p>
+  {ayuda && <p id={`${id}-ayuda`} class="ayuda -mt-1 mb-2">{ayuda}</p>}
+  <div class="mb-1 hidden grid-cols-[1fr_1.5fr_auto] gap-2 text-[13px] font-semibold text-gris sm:grid" aria-hidden="true" data-cabecera hidden={enlaces.length === 0}>
+    <span>Texto</span><span>Link</span><span class="w-[108px]"></span>
+  </div>
+  <ol data-filas class="space-y-2">
+    {enlaces.map((e, i) => <FilaEnlace id={`${id}-${i}`} enlace={e} />)}
+  </ol>
+  <template data-plantilla><FilaEnlace id={`${id}-__N__`} /></template>
+  <p data-vacio class="text-sm text-gris" hidden={enlaces.length > 0}>Sin links.</p>
+  <button type="button" class="btn-fantasma mt-2 px-2 text-marca" data-agregar>
+    <Icono svg={mas} tamano={16} /> Agregar link
+  </button>
+  <p class="ayuda" data-limite hidden>Llegaste al máximo de {max}.</p>
+</div>

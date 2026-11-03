@@ -1,0 +1,118 @@
+---
+/**
+ * Contenido de la barra lateral del panel: marca, acceso rápido, secciones y cuenta.
+ * Se usa en la barra fija de escritorio y en el menú desplegable del celular.
+ */
+import Icono from '../ui/Icono.astro';
+import iconoLista from '@tabler/icons/outline/list-details.svg?raw';
+import iconoPapelera from '@tabler/icons/outline/trash.svg?raw';
+import iconoUsuarios from '@tabler/icons/outline/users.svg?raw';
+import iconoSalir from '@tabler/icons/outline/logout.svg?raw';
+import iconoSitio from '@tabler/icons/outline/external-link.svg?raw';
+import iconoConfig from '@tabler/icons/outline/settings.svg?raw';
+import iconoMas from '@tabler/icons/outline/plus.svg?raw';
+import iconoCuenta from '@tabler/icons/outline/user-circle.svg?raw';
+import { altoPara, urlImagen } from '../../lib/configuracion';
+
+interface Props {
+  /** Etiqueta del <nav>, distinta en cada copia para que no se repita. */
+  etiqueta: string;
+}
+const { etiqueta } = Astro.props;
+const usuario = Astro.locals.usuario!;
+const sitio = Astro.locals.sitio;
+const ruta = Astro.url.pathname;
+
+const grupos = [
+  {
+    titulo: 'Gestión',
+    items: [
+      { href: '/panel', texto: 'Procedimientos', icono: iconoLista, activo: ruta === '/panel' || ruta === '/panel/nuevo' || ruta.startsWith('/panel/procedimientos') },
+      { href: '/panel/papelera', texto: 'Papelera', icono: iconoPapelera, activo: ruta.startsWith('/panel/papelera') },
+    ],
+  },
+  ...(usuario.rol === 'admin'
+    ? [
+        {
+          titulo: 'Administración',
+          items: [
+            { href: '/panel/usuarios', texto: 'Usuarios', icono: iconoUsuarios, activo: ruta.startsWith('/panel/usuarios') },
+            { href: '/panel/configuracion', texto: 'Configuración del sitio', icono: iconoConfig, activo: ruta.startsWith('/panel/configuracion') },
+          ],
+        },
+      ]
+    : []),
+];
+const claseItem = 'relative flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-semibold';
+---
+
+<div class="flex h-full flex-col">
+  <a href="/panel" class="flex items-center gap-3 border-b border-white/10 px-5 py-5">
+    {
+      sitio.logo ? (
+        <img src={urlImagen(sitio.logo)} alt={sitio.nombre} width="82" height={altoPara(sitio.logo, 82)} class="h-10 w-auto max-w-[110px] object-contain" />
+      ) : (
+        <span class="max-w-[110px] text-sm leading-tight font-bold">{sitio.nombre}</span>
+      )
+    }
+    <span class="border-l border-white/25 pl-3 text-sm leading-tight font-semibold">Licitaciones<br /><span class="font-normal text-white/65">Panel de carga</span></span>
+  </a>
+
+  <div class="px-4 pt-5">
+    <a href="/panel/nuevo" class="btn-primario w-full" aria-current={ruta === '/panel/nuevo' ? 'page' : undefined}>
+      <Icono svg={iconoMas} tamano={18} /> Nuevo procedimiento
+    </a>
+  </div>
+
+  <nav aria-label={etiqueta} class="flex-1 overflow-y-auto px-3 py-5">
+    {
+      grupos.map((g) => (
+        <div class="mb-6 last:mb-0">
+          <p class="mb-1.5 px-3 text-[12px] font-semibold text-white/50">{g.titulo}</p>
+          <ul class="space-y-0.5">
+            {g.items.map((s) => (
+              <li>
+                <a
+                  href={s.href}
+                  aria-current={s.activo ? 'page' : undefined}
+                  class:list={[
+                    claseItem,
+                    s.activo
+                      ? 'bg-white/12 text-white before:absolute before:top-2 before:bottom-2 before:-left-3 before:w-1 before:rounded-r before:bg-marca'
+                      : 'text-white/70 hover:bg-white/8 hover:text-white',
+                  ]}
+                >
+                  <Icono svg={s.icono} tamano={18} />
+                  {s.texto}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))
+    }
+  </nav>
+
+  <div class="space-y-0.5 border-t border-white/10 px-3 py-4">
+    <a href="/" target="_blank" class:list={[claseItem, 'font-normal text-white/70 hover:bg-white/8 hover:text-white']}>
+      <Icono svg={iconoSitio} tamano={18} /> Ver sitio público <span class="sr-only">(se abre en otra pestaña)</span>
+    </a>
+    <a
+      href="/panel/cuenta"
+      aria-current={ruta.startsWith('/panel/cuenta') ? 'page' : undefined}
+      class:list={[claseItem, 'font-normal', ruta.startsWith('/panel/cuenta') ? 'bg-white/12 text-white' : 'text-white/85 hover:bg-white/8 hover:text-white']}
+    >
+      <Icono svg={iconoCuenta} tamano={18} />
+      <span class="min-w-0 leading-tight">
+        <span class="sr-only">Mi cuenta: </span>
+        <span class="block truncate">{usuario.nombre}</span>
+        <span class="block text-[12px] text-white/55">{usuario.rol === 'admin' ? 'Administrador' : 'Compras'}</span>
+      </span>
+    </a>
+    <form method="post" action="/panel/salir">
+      <button type="submit" class:list={[claseItem, 'w-full font-normal text-white/70 hover:bg-white/8 hover:text-white']}>
+        <Icono svg={iconoSalir} tamano={18} /> Salir
+      </button>
+    </form>
+  </div>
+</div>

@@ -14,12 +14,12 @@
     "check": "astro check",
     "lint": "eslint .",
     "db:generate": "drizzle-kit generate",
-    "sync:marca": "tsx scripts/sync-marca.ts",
     "importar": "tsx scripts/importar-html.ts",
     "crear-admin": "tsx scripts/crear-admin.ts",
     "start": "node dist/server/entry.mjs",
     "backup": "node scripts/backup.mjs",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "configurar": "tsx scripts/configurar.ts"
   },
   "dependencies": {
     "@astrojs/node": "^11.1.9",

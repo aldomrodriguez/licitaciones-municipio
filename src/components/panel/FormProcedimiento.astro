@@ -146,7 +146,8 @@ const todoBloqueado = [...reglas.camposModalidad].every((c) => c === 'observacio
         <input id="invitados" name="invitados" type="number" min="0" inputmode="numeric" value={p?.invitados ?? ''} readonly={bloqueado('invitados')} aria-describedby={nota('invitados') ? 'n-invitados' : undefined} class={claseCampo('invitados')} data-etiqueta="Invitados" />
         {nota('invitados') && <p id="n-invitados" class="ayuda">{nota('invitados')}</p>}
       </div>
-      <div>
+      {/* En el alta no se muestra: recién se carga cuando se abren las ofertas. */}
+      <div hidden={!edicion && bloqueado('cantidadOfertantes') ? true : undefined}>
         <label for="cantidadOfertantes" class="etiqueta">Ofertas recibidas</label>
         <input id="cantidadOfertantes" name="cantidadOfertantes" type="number" min="0" inputmode="numeric" value={p?.cantidadOfertantes ?? ''} readonly={bloqueado('cantidadOfertantes')} aria-describedby={nota('cantidadOfertantes') ? 'n-ofertas' : undefined} class={claseCampo('cantidadOfertantes')} data-etiqueta="Cantidad de ofertantes" />
         {nota('cantidadOfertantes') && <p id="n-ofertas" class="ayuda">{nota('cantidadOfertantes')}</p>}

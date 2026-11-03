@@ -1,0 +1,28 @@
+---
+/** Columnas del footer: JSON en un campo oculto para el diff. Lógica en src/scripts/configuracion.ts. */
+import ColumnaFooter from './ColumnaFooter.astro';
+import Icono from '../../ui/Icono.astro';
+import mas from '@tabler/icons/outline/plus.svg?raw';
+import type { ColumnaFooter as Columna } from '../../../lib/configuracion';
+
+interface Props {
+  columnas: Columna[];
+}
+const { columnas } = Astro.props;
+const valor = JSON.stringify(columnas.map((c) => ({ titulo: c.titulo, textos: c.textos, links: c.links.map((l) => ({ texto: l.texto, href: l.href })) })));
+---
+
+<div data-editor-columnas data-max="3" role="group" aria-labelledby="cols-titulo" aria-describedby="cols-ayuda">
+  <input type="text" hidden name="columnas" value={valor} data-etiqueta="Columnas del footer" data-lista />
+  <p id="cols-titulo" class="etiqueta">Columnas del footer</p>
+  <p id="cols-ayuda" class="ayuda -mt-1 mb-3">Van a la derecha del logo. Hasta 3.</p>
+  <ol data-columnas class="space-y-3">
+    {columnas.map((c, i) => <ColumnaFooter id={`col-${i}`} columna={c} />)}
+  </ol>
+  <template data-plantilla-columna><ColumnaFooter id="col-__C__" /></template>
+  <p data-vacio-columnas class="text-sm text-gris" hidden={columnas.length > 0}>Sin columnas.</p>
+  <button type="button" class="btn-fantasma mt-2 px-2 text-marca" data-agregar-columna>
+    <Icono svg={mas} tamano={16} /> Agregar columna
+  </button>
+  <p class="ayuda" data-limite-columnas hidden>Llegaste al máximo de 3 columnas.</p>
+</div>

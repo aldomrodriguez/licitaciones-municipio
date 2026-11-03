@@ -75,7 +75,7 @@ const { procedimientoId, lista, total, editable, aviso } = Astro.props;
   {
     editable && (
       <details class="group mt-5 rounded-md border border-linea" open={lista.length === 0}>
-        <summary class="cursor-pointer px-4 py-3 text-sm font-semibold text-rojo">Agregar adjudicatario</summary>
+        <summary class="cursor-pointer px-4 py-3 text-sm font-semibold text-marca">Agregar adjudicatario</summary>
         <form
           method="post"
           class="grid gap-3 border-t border-linea p-4 sm:grid-cols-[1.6fr_1fr_1fr_auto] sm:items-end"

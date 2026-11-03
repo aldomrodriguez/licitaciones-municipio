@@ -2,6 +2,7 @@
 import '../styles/global.css';
 import Header from '../components/marca/Header.astro';
 import Footer from '../components/marca/Footer.astro';
+import Cabeza from '../components/marca/Cabeza.astro';
 
 interface Props {
   titulo: string;
@@ -11,7 +12,8 @@ interface Props {
 }
 const { titulo, descripcion, datosEstructurados } = Astro.props;
 const canonica = new URL(Astro.url.pathname, Astro.site);
-const tituloCompleto = titulo === 'Licitaciones' ? 'Licitaciones | Municipio de Lobos' : `${titulo} | Licitaciones | Municipio de Lobos`;
+const { nombre } = Astro.locals.sitio;
+const tituloCompleto = titulo === 'Licitaciones' ? `Licitaciones | ${nombre}` : `${titulo} | Licitaciones | ${nombre}`;
 ---
 
 <!doctype html>
@@ -22,7 +24,7 @@ const tituloCompleto = titulo === 'Licitaciones' ? 'Licitaciones | Municipio de 
     <title>{tituloCompleto}</title>
     <meta name="description" content={descripcion} />
     <link rel="canonical" href={canonica} />
-    <link rel="icon" href="/favicon.png" />
+    <Cabeza />
     <link rel="preload" href="/fonts/geist.woff2" as="font" type="font/woff2" crossorigin />
     <meta property="og:title" content={tituloCompleto} />
     <meta property="og:description" content={descripcion} />

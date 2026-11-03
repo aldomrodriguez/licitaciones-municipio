@@ -14,7 +14,7 @@ const lista = db().select().from(usuarios).orderBy(asc(usuarios.nombre)).all();
   <h1 class="text-3xl font-bold tracking-tight">Usuarios</h1>
   <p class="mt-1 text-gris">Quiénes pueden entrar al panel. Las contraseñas las genera el sistema y se muestran una sola vez.</p>
 
-  <div class="mt-8 grid gap-8 lg:grid-cols-[1fr_360px]">
+  <div class="mt-8 grid items-start gap-8 lg:grid-cols-[1fr_360px]">
     <div class="overflow-x-auto rounded-lg border border-linea bg-white">
       <table class="w-full min-w-[640px] text-left text-sm">
         <caption class="sr-only">Usuarios del panel</caption>

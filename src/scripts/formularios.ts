@@ -34,6 +34,10 @@ const ACCIONES = {
   cambiarActivoUsuario: actions.cambiarActivoUsuario,
   resetearClave: actions.resetearClave,
   cambiarMiClave: actions.cambiarMiClave,
+  guardarIdentidad: actions.guardarIdentidad,
+  guardarEncabezado: actions.guardarEncabezado,
+  guardarTextos: actions.guardarTextos,
+  quitarImagenMarca: actions.quitarImagenMarca,
 };
 type NombreAccion = keyof typeof ACCIONES;
 
@@ -61,14 +65,46 @@ function textoVisible(el: Campo, v: string): string {
   return v;
 }
 
+interface ItemLista {
+  texto?: string;
+  href?: string;
+  titulo?: string;
+  textos?: string[];
+  links?: ItemLista[];
+}
+
+/** Ítems de una lista del editor de configuración (JSON en un campo oculto), en texto legible. */
+function itemsLista(v: string): string[] {
+  try {
+    const items = JSON.parse(v) as ItemLista[];
+    return Array.isArray(items)
+      ? items.map((i) => (i.titulo !== undefined ? `${i.titulo}: ${[...(i.textos ?? []), ...(i.links ?? []).map((l) => `${l.texto} (${l.href})`)].join(', ') || 'vacía'}` : `${i.texto} (${i.href})`))
+      : [];
+  } catch {
+    return [v];
+  }
+}
+
+/** En las listas se muestra solo lo que se quita y lo que se agrega (o el nuevo orden). */
+function cambioLista(el: Campo) {
+  const antes = itemsLista(valorInicial(el));
+  const despues = itemsLista(valorActual(el));
+  const quitados = antes.filter((i) => !despues.includes(i));
+  const agregados = despues.filter((i) => !antes.includes(i));
+  if (quitados.length === 0 && agregados.length === 0) {
+    return { etiqueta: `${el.dataset.etiqueta}: nuevo orden`, antes: antes.join(' / '), despues: despues.join(' / ') };
+  }
+  return { etiqueta: el.dataset.etiqueta!, antes: quitados.join(' / ') || '—', despues: agregados.join(' / ') || '—' };
+}
+
 function cambios(form: HTMLFormElement) {
   return [...form.querySelectorAll<Campo>('[data-etiqueta]')]
     .filter((el) => valorInicial(el).trim() !== valorActual(el).trim())
     .map((el) => ({
       nombre: el.name,
-      etiqueta: el.dataset.etiqueta!,
-      antes: textoVisible(el, valorInicial(el)),
-      despues: textoVisible(el, valorActual(el)),
+      ...(el.dataset.lista !== undefined
+        ? cambioLista(el)
+        : { etiqueta: el.dataset.etiqueta!, antes: textoVisible(el, valorInicial(el)), despues: textoVisible(el, valorActual(el)) }),
     }));
 }
 

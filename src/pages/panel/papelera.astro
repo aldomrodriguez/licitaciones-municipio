@@ -30,7 +30,7 @@ const admin = Astro.locals.usuario!.rol === 'admin';
             return (
               <li class="flex flex-wrap items-center gap-4 py-4">
                 <div class="min-w-0 flex-1">
-                  <a href={urlPanel(p)} class="font-semibold hover:text-rojo hover:underline">
+                  <a href={urlPanel(p)} class="font-semibold hover:text-marca hover:underline">
                     {TIPOS[p.tipo].nombre} n° {clave}
                   </a>
                   <p class="line-clamp-1 text-sm text-gris">{p.objeto}</p>
@@ -74,7 +74,7 @@ const admin = Astro.locals.usuario!.rol === 'admin';
             <li class="flex flex-wrap items-center gap-4 py-4">
               <span class="grid size-10 shrink-0 place-items-center rounded-md bg-neutro-fondo text-neutro"><IconoArchivo mime={d.mime} tamano={22} /></span>
               <div class="min-w-0 flex-1">
-                <a href={urlDocumentoPanel(d.id, true)} target="_blank" class="font-semibold hover:text-rojo hover:underline">{d.titulo}</a>
+                <a href={urlDocumentoPanel(d.id, true)} target="_blank" class="font-semibold hover:text-marca hover:underline">{d.titulo}</a>
                 <p class="cifras text-sm text-gris">
                   {d.categoria}, {formatearTamano(d.tamano)}. De <a href={urlPanel(p)} class="underline hover:text-tinta">{TIPOS[p.tipo].corto} {p.numero}/{p.anio}</a>. Eliminado el {formatearFechaHora(d.eliminadoEn)}.
                 </p>

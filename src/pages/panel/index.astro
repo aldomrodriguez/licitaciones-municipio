@@ -2,13 +2,15 @@
 import Panel from '../../layouts/Panel.astro';
 import EstadoBadge from '../../components/ui/EstadoBadge.astro';
 import Icono from '../../components/ui/Icono.astro';
-import mas from '@tabler/icons/outline/plus.svg?raw';
+import Paginacion from '../../components/ui/Paginacion.astro';
 import clip from '@tabler/icons/outline/paperclip.svg?raw';
+import filtro from '@tabler/icons/outline/adjustments-horizontal.svg?raw';
 import { db } from '../../lib/db';
 import { aniosDisponibles, listarPanel } from '../../lib/procedimientos';
 import { ESTADOS, LISTA_TIPOS, TIPOS, esEstado, esTipo, type Estado } from '../../lib/estados';
 import { formatearFecha, formatearMonto } from '../../lib/formato';
 import { urlPanel } from '../../lib/rutas';
+import { paginar } from '../../lib/paginacion';
 
 const params = Astro.url.searchParams;
 const tipoP = params.get('tipo') ?? '';
@@ -26,16 +28,20 @@ const filtrando = Boolean(tipo || estado || anio || q);
 const todos = filtrando ? listarPanel(conexion, {}) : filas;
 const contar = (e: Estado) => todos.filter((f) => f.p.estado === e).length;
 const atajos = (['borrador', 'llamado', 'evaluacion', 'tramite'] as const).map((e) => ({ e, n: contar(e) })).filter((a) => a.n > 0);
+const filtrosActivos = [tipo, estado, anio, q].filter(Boolean).length;
+
+// Paginación: 50 por página, conservando los filtros en la URL.
+const { pagina, paginas, visibles, desde, hasta } = paginar(filas, params.get('pagina'), 50);
+const apertura = (f: (typeof filas)[number]) => {
+  const e = esEstado(f.p.estado) ? f.p.estado : 'borrador';
+  if (e === 'adjudicada' && f.total > 0) return formatearMonto(f.total);
+  return f.p.fechaApertura ? formatearFecha(f.p.fechaApertura, 'corta') : null;
+};
 ---
 
 <Panel titulo="Procedimientos">
-  <div class="flex flex-wrap items-end justify-between gap-4">
-    <div>
-      <h1 class="text-3xl font-bold tracking-tight">Procedimientos</h1>
-      <p class="mt-1 text-gris">Licitaciones públicas, privadas y concursos de precios.</p>
-    </div>
-    <a href="/panel/nuevo" class="btn-primario"><Icono svg={mas} tamano={18} /> Nuevo procedimiento</a>
-  </div>
+  <h1 class="text-3xl font-bold tracking-tight">Procedimientos</h1>
+  <p class="mt-1 text-gris">Licitaciones públicas, privadas y concursos de precios.</p>
 
   {
     atajos.length > 0 && (
@@ -56,7 +62,22 @@ const atajos = (['borrador', 'llamado', 'evaluacion', 'tramite'] as const).map((
     )
   }
 
-  <form method="get" class="mt-6 grid gap-3 rounded-lg border border-linea bg-white p-4 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_.7fr_auto]" data-filtros>
+  <button
+    type="button"
+    class="btn-secundario mt-6 w-full justify-between sm:hidden"
+    aria-expanded="false"
+    aria-controls="filtros"
+    data-ver-filtros
+  >
+    <span class="flex items-center gap-2"><Icono svg={filtro} tamano={18} /> Buscar y filtrar</span>
+    {filtrosActivos > 0 && <span class="rounded-full bg-tinta px-2 py-0.5 text-[12px] text-white">{filtrosActivos} {filtrosActivos === 1 ? 'activo' : 'activos'}</span>}
+  </button>
+  <form
+    id="filtros"
+    method="get"
+    class="mt-3 hidden gap-3 rounded-lg border border-linea bg-white p-4 data-[abierto]:grid sm:mt-6 sm:grid sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_.7fr_auto]"
+    data-filtros
+  >
     <div>
       <label for="f-q" class="etiqueta">Buscar</label>
       <input id="f-q" name="q" type="search" value={q} placeholder="Objeto o número (7/2026)" class="campo" />
@@ -88,7 +109,9 @@ const atajos = (['borrador', 'llamado', 'evaluacion', 'tramite'] as const).map((
     </div>
   </form>
 
-  <p class="mt-5 text-sm text-gris" role="status">{filas.length === 1 ? '1 procedimiento' : `${filas.length} procedimientos`}</p>
+  <p class="mt-5 text-sm text-gris" role="status">
+    {filas.length === 1 ? '1 procedimiento' : paginas > 1 ? `${desde}–${hasta} de ${filas.length} procedimientos` : `${filas.length} procedimientos`}
+  </p>
 
   {
     filas.length === 0 ? (
@@ -99,8 +122,27 @@ const atajos = (['borrador', 'llamado', 'evaluacion', 'tramite'] as const).map((
         </a>
       </div>
     ) : (
-      <div class="mt-3 overflow-x-auto rounded-lg border border-linea bg-white">
-        <table class="cifras w-full min-w-[860px] text-left text-sm">
+      <>
+      <ul class="mt-3 divide-y divide-linea overflow-hidden rounded-lg border border-linea bg-white md:hidden" aria-label="Listado de procedimientos">
+        {visibles.map((f) => {
+          const e = esEstado(f.p.estado) ? f.p.estado : 'borrador';
+          const dato = apertura(f);
+          return (
+            <li class="relative px-4 py-3.5 active:bg-papel">
+              <div class="flex items-center justify-between gap-3">
+                <a href={urlPanel(f.p)} class="cifras font-bold after:absolute after:inset-0">
+                  <span class="font-normal text-gris">{TIPOS[f.p.tipo].corto}</span> {f.p.numero}/{f.p.anio}
+                </a>
+                <EstadoBadge estado={e} />
+              </div>
+              <p class="mt-1 line-clamp-2 text-sm">{f.p.objeto}</p>
+              {dato && <p class="cifras mt-1 text-[13px] text-gris">{e === 'adjudicada' && f.total > 0 ? 'Adjudicado' : 'Apertura'}: {dato}</p>}
+            </li>
+          );
+        })}
+      </ul>
+      <div class="mt-3 hidden overflow-x-auto rounded-lg border border-linea bg-white md:block">
+        <table class="cifras w-full min-w-[760px] text-left text-sm">
           <caption class="sr-only">Listado de procedimientos</caption>
           <thead class="border-b border-linea bg-papel text-[13px] text-gris">
             <tr>
@@ -113,13 +155,13 @@ const atajos = (['borrador', 'llamado', 'evaluacion', 'tramite'] as const).map((
             </tr>
           </thead>
           <tbody class="divide-y divide-linea">
-            {filas.map((f) => {
+            {visibles.map((f) => {
               const e = esEstado(f.p.estado) ? f.p.estado : 'borrador';
               return (
                 <tr class="relative hover:bg-papel">
                   <th scope="row" class="px-4 py-3 align-top font-normal whitespace-nowrap">
                     <span class="block text-[13px] text-gris">{TIPOS[f.p.tipo].corto}</span>
-                    <a href={urlPanel(f.p)} class="font-bold text-tinta after:absolute after:inset-0 hover:text-rojo">
+                    <a href={urlPanel(f.p)} class="font-bold text-tinta after:absolute after:inset-0 hover:text-marca">
                       {f.p.numero}/{f.p.anio}
                     </a>
                   </th>
@@ -128,7 +170,7 @@ const atajos = (['borrador', 'llamado', 'evaluacion', 'tramite'] as const).map((
                   </td>
                   <td class="px-4 py-3 align-top"><EstadoBadge estado={e} /></td>
                   <td class="px-4 py-3 align-top whitespace-nowrap">
-                    {e === 'adjudicada' && f.total > 0 ? formatearMonto(f.total) : f.p.fechaApertura ? formatearFecha(f.p.fechaApertura, 'corta') : <span class="text-gris">—</span>}
+                    {apertura(f) ?? <span class="text-gris">—</span>}
                   </td>
                   <td class="px-4 py-3 text-center align-top">{f.documentos || <span class="text-gris">0</span>}</td>
                   <td class="px-4 py-3 align-top whitespace-nowrap text-gris">{formatearFecha(f.p.actualizadoEn, 'corta')}</td>
@@ -138,6 +180,8 @@ const atajos = (['borrador', 'llamado', 'evaluacion', 'tramite'] as const).map((
           </tbody>
         </table>
       </div>
+      <Paginacion pagina={pagina} paginas={paginas} ruta="/panel" />
+      </>
     )
   }
 </Panel>
@@ -145,4 +189,12 @@ const atajos = (['borrador', 'llamado', 'evaluacion', 'tramite'] as const).map((
 <script>
   const form = document.querySelector<HTMLFormElement>('[data-filtros]');
   form?.querySelectorAll('select').forEach((s) => s.addEventListener('change', () => form.requestSubmit()));
+  // En el celular los filtros arrancan plegados.
+  const ver = document.querySelector<HTMLButtonElement>('[data-ver-filtros]');
+  ver?.addEventListener('click', () => {
+    const abierto = ver.getAttribute('aria-expanded') !== 'true';
+    ver.setAttribute('aria-expanded', String(abierto));
+    form?.toggleAttribute('data-abierto', abierto);
+    if (abierto) form?.querySelector<HTMLInputElement>('input[name="q"]')?.focus();
+  });
 </script>

@@ -1,0 +1,43 @@
+---
+/** Navegación entre páginas de un listado. No se muestra si hay una sola página. */
+import { numerosDePagina, urlPagina } from '../../lib/paginacion';
+
+interface Props {
+  pagina: number;
+  paginas: number;
+  /** Ruta del listado, ej. `/` o `/panel`. Los filtros se toman de la URL actual. */
+  ruta: string;
+  /** Ancla a la que vuelve cada link, ej. `#titulo-listado`. */
+  ancla?: string;
+}
+const { pagina, paginas, ruta, ancla = '' } = Astro.props;
+const params = Astro.url.searchParams;
+const url = (n: number) => urlPagina(ruta, params, n, ancla);
+---
+
+{
+  paginas > 1 && (
+    <nav aria-label="Páginas del listado" class="mt-6 flex flex-wrap items-center justify-between gap-3 text-sm">
+      {pagina > 1 ? <a href={url(pagina - 1)} class="btn-secundario" rel="prev">Anterior</a> : <span />}
+      <ol class="order-first flex w-full flex-wrap justify-center gap-1 sm:order-none sm:w-auto">
+        {numerosDePagina(pagina, paginas).map((n) =>
+          n === null ? (
+            <li class="grid size-10 place-items-center text-gris" aria-hidden="true">…</li>
+          ) : (
+            <li>
+              <a
+                href={url(n)}
+                aria-current={n === pagina ? 'page' : undefined}
+                class="cifras grid size-10 place-items-center rounded-md border border-transparent font-semibold text-gris hover:border-linea hover:bg-white hover:text-tinta aria-[current]:border-tinta aria-[current]:bg-white aria-[current]:text-tinta"
+              >
+                <span class="sr-only">Página </span>
+                {n}
+              </a>
+            </li>
+          ),
+        )}
+      </ol>
+      {pagina < paginas ? <a href={url(pagina + 1)} class="btn-secundario" rel="next">Siguiente</a> : <span />}
+    </nav>
+  )
+}

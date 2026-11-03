@@ -115,7 +115,7 @@ function mejorarSelect(sel: HTMLSelectElement) {
         const t = document.createElement('span');
         t.textContent = o.text;
         li.append(t);
-        li.insertAdjacentHTML('beforeend', icono(tilde, 16, 'invisible text-rojo [[aria-selected=true]>&]:visible'));
+        li.insertAdjacentHTML('beforeend', icono(tilde, 16, 'invisible text-marca [[aria-selected=true]>&]:visible'));
         return li;
       }),
     );
@@ -343,7 +343,7 @@ function mejorarFecha(input: HTMLInputElement) {
       <tbody></tbody>
     </table>
     <div class="mt-2 flex items-center justify-between border-t border-linea pt-2">
-      <button type="button" class="rounded-md px-2.5 py-1.5 text-sm font-semibold text-rojo hover:bg-rojo-claro" data-hoy>Hoy</button>
+      <button type="button" class="rounded-md px-2.5 py-1.5 text-sm font-semibold text-marca hover:bg-marca-claro" data-hoy>Hoy</button>
       ${input.required ? '' : '<button type="button" class="rounded-md px-2.5 py-1.5 text-sm text-gris hover:bg-papel hover:text-tinta" data-borrar>Borrar fecha</button>'}
     </div>`;
   raiz.append(panel);
@@ -370,7 +370,7 @@ function mejorarFecha(input: HTMLInputElement) {
         const clases = [
           'mx-auto grid size-9 place-items-center rounded-full',
           delMes ? 'text-tinta' : 'text-gris/60',
-          iso === elegido ? 'bg-rojo font-bold text-white hover:bg-rojo-oscuro' : 'hover:bg-papel',
+          iso === elegido ? 'bg-marca font-bold text-white hover:bg-marca-oscuro' : 'hover:bg-papel',
           iso === hoy && iso !== elegido ? 'font-bold ring-1 ring-tinta' : '',
         ].join(' ');
         celdas.push(

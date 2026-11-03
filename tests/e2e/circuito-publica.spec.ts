@@ -59,7 +59,7 @@ test('licitación pública: borrador → llamado → prórroga → evaluación �
   await ingresar(page);
 
   // 1. Crear como borrador.
-  await page.getByRole('link', { name: 'Nuevo procedimiento' }).click();
+  await page.locator('aside').getByRole('link', { name: 'Nuevo procedimiento' }).click();
   await page.locator('#objeto').fill(objeto);
   await page.locator('#presupuestoOficial').fill('2000000');
   await page.locator('#valorPliego').fill('5000');

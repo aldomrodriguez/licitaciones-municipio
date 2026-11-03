@@ -1,4 +1,4 @@
-# Licitaciones · Municipio de Lobos
+# Licitaciones municipales
 # Imagen para Coolify. Datos persistentes (base SQLite + documentos + backups) en /data.
 
 FROM node:24-bookworm-slim AS base
@@ -15,7 +15,7 @@ RUN pnpm install --frozen-lockfile
 FROM deps AS build
 # El dominio queda fijo en el build (canonical, sitemap y protección CSRF del login).
 # En Coolify, SITE_URL tiene que estar marcada como variable de build.
-ARG SITE_URL=https://licitaciones.municipiodelobos.gob.ar
+ARG SITE_URL
 ENV SITE_URL=$SITE_URL
 COPY . .
 RUN pnpm build && pnpm prune --prod

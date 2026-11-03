@@ -1,12 +1,14 @@
 import { defineMiddleware } from 'astro:middleware';
 import { COOKIE_SESION, validarSesion } from './lib/auth';
 import { db } from './lib/db';
+import { leerConfiguracion } from './lib/configuracion';
 
 const PUBLICAS_DEL_PANEL = new Set(['/panel/login', '/panel/login/']);
 
 export const onRequest = defineMiddleware(async (ctx, next) => {
   const { pathname } = ctx.url;
   const enPanel = pathname === '/panel' || pathname.startsWith('/panel/') || pathname.startsWith('/_actions/');
+  ctx.locals.sitio = leerConfiguracion(db());
   ctx.locals.usuario = enPanel ? validarSesion(db(), ctx.cookies.get(COOKIE_SESION)?.value) : null;
 
   if (enPanel && !ctx.locals.usuario && !PUBLICAS_DEL_PANEL.has(pathname)) {

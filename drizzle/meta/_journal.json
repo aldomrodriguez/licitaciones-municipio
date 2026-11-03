@@ -15,6 +15,13 @@
       "when": 1793637547735,
       "tag": "0001_fecha_apertura_sin_hora",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1793659084357,
+      "tag": "0002_configuracion_sitio",
+      "breakpoints": true
     }
   ]
 }

@@ -27,7 +27,7 @@ const cortado = ESTADOS[estado].final && estado !== 'adjudicada';
               class:list={[
                 'cifras grid size-8 shrink-0 place-items-center rounded-full border-2 text-sm font-bold',
                 hecho && 'border-tinta bg-tinta text-white',
-                ahora && !cortado && 'border-rojo bg-rojo text-white',
+                ahora && !cortado && 'border-marca bg-marca text-white',
                 ahora && cortado && 'border-peligro bg-peligro text-white',
                 !hecho && !ahora && 'border-linea bg-white text-gris',
               ]}

@@ -4,10 +4,10 @@ services:
     build:
       context: .
       args:
-        SITE_URL: ${SITE_URL:-https://licitaciones.municipiodelobos.gob.ar}
+        SITE_URL: ${SITE_URL:?Definí SITE_URL con el dominio público, ej. https://licitaciones.municipio.gob.ar}
     restart: unless-stopped
     environment:
-      SITE_URL: ${SITE_URL:-https://licitaciones.municipiodelobos.gob.ar}
+      SITE_URL: ${SITE_URL}
     ports:
       - '4321:4321'
     volumes:

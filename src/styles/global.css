@@ -7,13 +7,19 @@
   font-display: swap;
 }
 
-/* Tokens de Muni-2026 (ver scripts/sync-marca.ts) + tonos de estado propios. */
+/*
+ * Tokens del sitio + tonos de estado propios.
+ * Los --color-marca-* son los genéricos: en cada página los pisa la configuración del
+ * panel (components/marca/Cabeza.astro), así que no se tocan acá para cambiar la marca.
+ */
 @theme {
   --font-sans: 'Geist', Arial, sans-serif;
 
-  --color-rojo: #d52027;
-  --color-rojo-oscuro: #a8161c;
-  --color-rojo-claro: #fdeced;
+  --color-marca: #2b5d8a;
+  --color-marca-oscuro: #22496d;
+  --color-marca-claro: #eef2f6;
+  --color-marca-sobre-oscuro: #6b8ead;
+  --color-marca-sobre-marca: #eaeff3;
   --color-tinta: #202124;
   --color-noche: #141517;
   --color-papel: #f4f6f9;
@@ -42,7 +48,7 @@
     @apply bg-white font-sans text-tinta antialiased;
   }
   :focus-visible {
-    outline: 3px solid var(--color-rojo);
+    outline: 3px solid var(--color-marca);
     outline-offset: 2px;
     border-radius: 3px;
   }
@@ -72,7 +78,7 @@
   @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50;
 }
 @utility btn-primario {
-  @apply btn bg-rojo text-white hover:bg-rojo-oscuro;
+  @apply btn bg-marca text-white hover:bg-marca-oscuro;
 }
 @utility btn-secundario {
   @apply btn border border-linea bg-white text-tinta hover:border-gris;
@@ -84,7 +90,7 @@
   @apply btn text-gris hover:bg-papel hover:text-tinta;
 }
 @utility campo {
-  @apply block w-full rounded-md border border-linea bg-white px-3 py-2.5 text-[15px] text-tinta placeholder:text-gris/70 focus:border-tinta focus:outline-none focus-visible:outline-2 focus-visible:outline-rojo aria-invalid:border-peligro;
+  @apply block w-full rounded-md border border-linea bg-white px-3 py-2.5 text-[15px] text-tinta placeholder:text-gris/70 focus:border-tinta focus:outline-none focus-visible:outline-2 focus-visible:outline-marca aria-invalid:border-peligro;
 }
 @utility etiqueta {
   @apply mb-1.5 block text-sm font-semibold text-tinta;

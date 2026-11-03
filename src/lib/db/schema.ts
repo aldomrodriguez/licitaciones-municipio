@@ -122,3 +122,23 @@ export type EntradaHistorial = typeof historial.$inferSelect;
 export type Usuario = typeof usuarios.$inferSelect;
 export type Tipo = Procedimiento['tipo'];
 export type AccionHistorial = EntradaHistorial['accion'];
+
+/** Configuración del sitio (identidad, header, footer y textos). Una sola fila, id = 1. */
+export const configuracion = sqliteTable('configuracion', {
+  id: integer('id').primaryKey(),
+  datos: text('datos').notNull(),
+  actualizadoEn: integer('actualizado_en', { mode: 'timestamp_ms' }).notNull().default(ahora),
+  actualizadoPor: text('actualizado_por'),
+});
+
+/** Registro de cambios de la configuración: quién, cuándo y qué cambió. */
+export const cambiosConfiguracion = sqliteTable('cambios_configuracion', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  fecha: integer('fecha', { mode: 'timestamp_ms' }).notNull().default(ahora),
+  usuarioNombre: text('usuario_nombre').notNull(),
+  seccion: text('seccion').notNull(),
+  /** JSON: [{ campo, antes, despues }] */
+  cambios: text('cambios').notNull(),
+});
+
+export type CambioConfiguracion = typeof cambiosConfiguracion.$inferSelect;

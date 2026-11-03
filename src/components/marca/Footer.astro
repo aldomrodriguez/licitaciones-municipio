@@ -1,18 +1,26 @@
 ---
-import marca from './marca.json';
+import { altoPara, urlImagen } from '../../lib/configuracion';
+
+const { nombre, logo, lema, columnas } = Astro.locals.sitio;
 const anio = new Date().getFullYear();
 ---
 
 <footer class="mt-auto bg-noche pt-16 text-white">
   <div class="contenedor grid gap-8 pb-14 text-center sm:grid-cols-2 lg:grid-cols-[1.4fr_repeat(3,1fr)] lg:gap-11">
     <div>
-      <img src="/marca/logo-municipio-lobos.png" alt="Municipio de Lobos" width="190" height="111" class="mx-auto block w-[190px]" />
-      <p class="mx-auto mt-4 max-w-[300px] text-[13px] leading-relaxed text-[#aeb2b6]">{marca.lema}</p>
+      {
+        logo ? (
+          <img src={urlImagen(logo)} alt={nombre} width="190" height={altoPara(logo, 190)} class="mx-auto block max-h-[112px] w-[190px] object-contain" />
+        ) : (
+          <p class="text-xl font-bold">{nombre}</p>
+        )
+      }
+      {lema && <p class="mx-auto mt-4 max-w-[300px] text-[13px] leading-relaxed text-[#aeb2b6]">{lema}</p>}
     </div>
     {
-      marca.columnas.map((col) => (
+      columnas.map((col) => (
         <div>
-          <h2 class="mt-2 mb-[18px] text-[13px] font-bold tracking-[.08em] text-[#ff7a7f] uppercase">{col.titulo}</h2>
+          <h2 class="mt-2 mb-[18px] text-[13px] font-bold tracking-[.08em] text-marca-sobre-oscuro uppercase">{col.titulo}</h2>
           {col.textos.map((t) => (
             <p class="mb-3 text-[13px] text-[#c6c9cb]">{t}</p>
           ))}
@@ -21,16 +29,11 @@ const anio = new Date().getFullYear();
               {l.texto}
             </a>
           ))}
-          {col.titulo === 'Contacto' && marca.email && (
-            <a href={`mailto:${marca.email}`} class="mb-3 block text-[13px] text-[#c6c9cb] hover:text-white">
-              {marca.email}
-            </a>
-          )}
         </div>
       ))
     }
   </div>
   <div class="contenedor flex min-h-[66px] flex-col items-center justify-center gap-2 border-t border-[#35373a] py-4 text-[11px] text-[#8f9396] sm:flex-row sm:gap-7">
-    <span>© {anio} Municipio de Lobos</span>
+    <span>© {anio} {nombre}</span>
   </div>
 </footer>

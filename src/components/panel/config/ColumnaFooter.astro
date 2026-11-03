@@ -1,0 +1,37 @@
+---
+/** Una columna del footer en el editor (título, textos sueltos y links). En la plantilla `id` lleva «__C__». */
+import EditorEnlaces from './EditorEnlaces.astro';
+import Icono from '../../ui/Icono.astro';
+import arriba from '@tabler/icons/outline/arrow-up.svg?raw';
+import abajo from '@tabler/icons/outline/arrow-down.svg?raw';
+import quitar from '@tabler/icons/outline/trash.svg?raw';
+import type { ColumnaFooter } from '../../../lib/configuracion';
+
+interface Props {
+  id: string;
+  columna?: ColumnaFooter;
+}
+const { id, columna } = Astro.props;
+---
+
+<li data-columna class="rounded-lg border border-linea p-4">
+  <div class="flex items-end gap-2">
+    <div class="flex-1">
+      <label for={`${id}-titulo`} class="etiqueta">Título de la columna</label>
+      <input id={`${id}-titulo`} data-titulo-columna required maxlength="40" value={columna?.titulo ?? ''} class="campo" />
+    </div>
+    <div class="flex gap-0.5 pb-1">
+      <button type="button" class="btn-fantasma p-2" data-subir-columna aria-label="Subir columna"><Icono svg={arriba} tamano={16} /></button>
+      <button type="button" class="btn-fantasma p-2" data-bajar-columna aria-label="Bajar columna"><Icono svg={abajo} tamano={16} /></button>
+      <button type="button" class="btn-fantasma p-2 hover:text-peligro" data-quitar-columna aria-label="Quitar columna"><Icono svg={quitar} tamano={16} /></button>
+    </div>
+  </div>
+  <div class="mt-4">
+    <label for={`${id}-textos`} class="etiqueta">Textos <span class="font-normal text-gris">(opcional, uno por renglón)</span></label>
+    <textarea id={`${id}-textos`} data-textos-columna rows="2" class="campo" aria-describedby={`${id}-textos-ayuda`}>{columna?.textos.join('\n')}</textarea>
+    <p id={`${id}-textos-ayuda`} class="ayuda">Se muestran antes de los links, sin enlace. Por ejemplo, una dirección.</p>
+  </div>
+  <div class="mt-4">
+    <EditorEnlaces id={`${id}-links`} etiqueta="Links de la columna" enlaces={columna?.links ?? []} max={10} />
+  </div>
+</li>

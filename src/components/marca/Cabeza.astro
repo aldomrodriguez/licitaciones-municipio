@@ -1,0 +1,11 @@
+---
+/** Favicon y colores de la marca configurada. Va dentro del <head> de cada layout. */
+import { variablesCss } from '../../lib/color';
+import { urlImagen } from '../../lib/configuracion';
+
+const { colores, favicon, logo } = Astro.locals.sitio;
+const icono = favicon ?? logo;
+---
+
+{icono ? <link rel="icon" href={urlImagen(icono)} /> : <link rel="icon" href="/favicon.svg" type="image/svg+xml" />}
+<style is:inline set:html={variablesCss(colores)} />

@@ -2,6 +2,8 @@
 import '../../styles/global.css';
 import { db } from '../../lib/db';
 import { guardarCookie, iniciarSesion } from '../../lib/auth';
+import { altoPara, urlImagen } from '../../lib/configuracion';
+import Cabeza from '../../components/marca/Cabeza.astro';
 
 const volverParam = Astro.url.searchParams.get('volver') ?? '/panel';
 const volver = volverParam.startsWith('/panel') ? volverParam : '/panel';
@@ -20,6 +22,7 @@ if (Astro.request.method === 'POST') {
   Astro.response.status = 401;
 }
 if (Astro.locals.usuario) return Astro.redirect('/panel');
+const sitio = Astro.locals.sitio;
 ---
 
 <!doctype html>
@@ -29,12 +32,18 @@ if (Astro.locals.usuario) return Astro.redirect('/panel');
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex, nofollow" />
     <title>Ingresar | Panel de licitaciones</title>
-    <link rel="icon" href="/favicon.png" />
+    <Cabeza />
   </head>
   <body class="grid min-h-dvh place-items-center bg-tinta px-4 py-10">
     <main class="w-full max-w-[400px]">
-      <img src="/marca/logo-municipio-lobos.png" alt="Municipio de Lobos" width="160" height="94" class="mx-auto mb-8 w-[150px]" />
-      <div class="rounded-xl border-t-4 border-rojo bg-white p-7 shadow-2xl">
+      {
+        sitio.logo ? (
+          <img src={urlImagen(sitio.logo)} alt={sitio.nombre} width="160" height={altoPara(sitio.logo, 160)} class="mx-auto mb-8 max-h-[100px] w-[150px] object-contain" />
+        ) : (
+          <p class="mb-8 text-center text-2xl font-bold text-white">{sitio.nombre}</p>
+        )
+      }
+      <div class="rounded-xl border-t-4 border-marca bg-white p-7 shadow-2xl">
         <h1 class="text-2xl font-bold tracking-tight">Panel de licitaciones</h1>
         <p class="mt-1 text-gris">Ingresá con tu usuario del área de Compras.</p>
         {
