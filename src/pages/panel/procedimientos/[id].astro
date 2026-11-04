@@ -11,7 +11,7 @@ import externo from '@tabler/icons/outline/external-link.svg?raw';
 import papelera from '@tabler/icons/outline/trash.svg?raw';
 import { db } from '../../../lib/db';
 import { detalle, ErrorNegocio, nombreProcedimiento } from '../../../lib/procedimientos';
-import { ESTADOS, TIPOS, categoriasNoDisponibles, esVisiblePublico, reglasEtapa } from '../../../lib/estados';
+import { ESTADOS, TIPOS, SOLO_ADJUDICADA, categoriasNoDisponibles, esVisiblePublico, reglasEtapa } from '../../../lib/estados';
 import { urlPublica } from '../../../lib/rutas';
 
 const id = Number(Astro.params.id);
@@ -93,7 +93,7 @@ const avisoAdjudicatarios = enPapelera || reglas.adjudicatarios
       <Historial lista={d.historial} />
     </div>
     <aside class="space-y-6 lg:sticky lg:top-6 lg:self-start">
-      {editable && <TarjetaEstado p={p} estado={d.estado} rol={usuario.rol} cantidadAdjudicaciones={d.adjudicaciones.length} cantidadInvitados={d.cantidadInvitados} />}
+      {editable && <TarjetaEstado p={p} estado={d.estado} rol={usuario.rol} cantidadAdjudicaciones={d.adjudicaciones.length} cantidadInvitados={d.cantidadInvitados} cantidadDocumentosAdjudicacion={d.documentos.filter((doc) => (SOLO_ADJUDICADA as readonly string[]).includes(doc.categoria)).length} />}
       {
         editable && (
           <section aria-labelledby="t-eliminar" class="rounded-lg border border-linea bg-white p-5">

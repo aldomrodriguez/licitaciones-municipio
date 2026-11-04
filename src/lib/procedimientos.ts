@@ -2,7 +2,7 @@
  * Operaciones sobre procedimientos. Toda mutación corre en una transacción
  * y deja su rastro en `historial`: no hay forma de cambiar algo sin registrarlo.
  */
-import { and, asc, desc, eq, isNotNull, isNull, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, isNotNull, inArray, isNull, sql } from 'drizzle-orm';
 import type { Db } from './db';
 import {
   adjudicaciones,
@@ -21,6 +21,7 @@ import {
   esVisiblePublico,
   motivoBloqueo,
   reglasEtapa,
+  SOLO_ADJUDICADA,
   validarTransicion,
   type CampoEtapa,
   type Estado,
@@ -267,7 +268,14 @@ export function cambiarEstado(db: Db, actor: Actor, id: number, destino: Estado,
       .where(eq(adjudicaciones.procedimientoId, id))
       .get()?.n ?? 0;
     const errores = validarTransicion(
-      { tipo: p.tipo, estado: actual, fechaApertura: p.fechaApertura, cantidadAdjudicaciones, cantidadInvitados: contarInvitados(tx, p) },
+      {
+        tipo: p.tipo,
+        estado: actual,
+        fechaApertura: p.fechaApertura,
+        cantidadAdjudicaciones,
+        cantidadInvitados: contarInvitados(tx, p),
+        cantidadDocumentosAdjudicacion: contarDocumentosAdjudicacion(tx, id),
+      },
       destino,
       actor.rol,
       motivo,
@@ -349,6 +357,23 @@ export function quitarAdjudicacion(db: Db, actor: Actor, adjudicacionId: number)
     });
     tocar(tx, a.procedimientoId);
   });
+}
+
+/** Órdenes de compra y ampliaciones activas (fuera de la papelera). */
+function contarDocumentosAdjudicacion(tx: Tx | Db, procedimientoId: number): number {
+  return (
+    tx
+      .select({ n: sql<number>`count(*)` })
+      .from(documentos)
+      .where(
+        and(
+          eq(documentos.procedimientoId, procedimientoId),
+          isNull(documentos.eliminadoEn),
+          inArray(documentos.categoria, [...SOLO_ADJUDICADA]),
+        ),
+      )
+      .get()?.n ?? 0
+  );
 }
 
 // ─── Proveedores invitados ───────────────────────────────────────────────────

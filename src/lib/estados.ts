@@ -155,6 +155,8 @@ export interface DatosValidacion {
   fechaApertura: Date | null;
   cantidadAdjudicaciones: number;
   cantidadInvitados: number;
+  /** Órdenes de compra y ampliaciones cargadas (solo tienen sentido si se adjudica). */
+  cantidadDocumentosAdjudicacion: number;
 }
 
 /** Devuelve los motivos por los que no se puede pasar a `destino` (vacío = se puede). */
@@ -195,6 +197,9 @@ export function validarTransicion(
   }
   if (destino === 'adjudicada' && datos.cantidadAdjudicaciones === 0) {
     errores.push('Para adjudicar hay que cargar al menos un adjudicatario con su monto.');
+  }
+  if (ESTADOS[destino].final && destino !== 'adjudicada' && datos.cantidadDocumentosAdjudicacion > 0) {
+    errores.push('Hay una orden de compra o ampliación cargada: sin adjudicación no corresponde. Quitala antes de cerrar.');
   }
   return errores;
 }
@@ -324,7 +329,7 @@ const DOCUMENTO_DESDE: Record<Categoria, Etapa> = {
   'Otro': 0,
 };
 /** Documentos que solo existen si hubo adjudicación. */
-const SOLO_ADJUDICADA: readonly Categoria[] = ['Orden de compra / contrato', 'Ampliación'];
+export const SOLO_ADJUDICADA: readonly Categoria[] = ['Orden de compra / contrato', 'Ampliación'];
 
 export interface ReglasEtapa {
   /** Campos editables ahora. */
@@ -371,8 +376,10 @@ export function reglasEtapa(tipo: Tipo, estado: Estado, rol: Rol): ReglasEtapa {
       return CAMPOS_POR_ETAPA[c].some((e) => etapas.includes(e));
     }),
   );
-  const categorias = CATEGORIAS.filter(
-    (c) => DOCUMENTO_DESDE[c] <= ultima && (!SOLO_ADJUDICADA.includes(c) || estado === 'adjudicada'),
+  // Una privada se carga ya terminada: en borrador también va la orden de compra.
+  const cargaFinal = estado === 'borrador' && CARGA_AL_FINAL.includes(tipo);
+  const categorias = CATEGORIAS.filter((c) =>
+    SOLO_ADJUDICADA.includes(c) ? estado === 'adjudicada' || cargaFinal : DOCUMENTO_DESDE[c] <= ultima,
   );
   return { campos, camposModalidad, adjudicatarios: etapas.includes(2), invitados: ultima < 3, categorias, guia: GUIAS[tipo][ETAPA[estado]] };
 }

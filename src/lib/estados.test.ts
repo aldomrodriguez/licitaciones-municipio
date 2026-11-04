@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { categoriasNoDisponibles, reglasEtapa, transicionesPosibles, validarTransicion, type DatosValidacion } from './estados';
 
 const futuro = new Date('2099-01-01T13:00:00Z');
-const base: DatosValidacion = { tipo: 'publica', estado: 'borrador', fechaApertura: futuro, cantidadAdjudicaciones: 0, cantidadInvitados: 5 };
+const base: DatosValidacion = { tipo: 'publica', estado: 'borrador', fechaApertura: futuro, cantidadAdjudicaciones: 0, cantidadInvitados: 5, cantidadDocumentosAdjudicacion: 0 };
 
 describe('transiciones', () => {
   it('una pública no puede saltar de borrador a adjudicada', () => {
@@ -18,7 +18,19 @@ describe('transiciones', () => {
     expect(reglasEtapa('privada', 'borrador', 'compras')).toMatchObject({ adjudicatarios: true });
     expect(reglasEtapa('privada', 'borrador', 'compras').campos.has('cantidadOfertantes')).toBe(true);
     expect(reglasEtapa('privada', 'borrador', 'compras').categorias).toContain('Decreto de adjudicación');
-    expect(categoriasNoDisponibles('privada', 'borrador', 'compras')).toContain('Orden de compra / contrato');
+    expect(reglasEtapa('privada', 'borrador', 'compras').categorias).toContain('Orden de compra / contrato');
+    expect(reglasEtapa('privada', 'borrador', 'compras').categorias).toContain('Ampliación');
+    expect(categoriasNoDisponibles('concurso', 'borrador', 'compras')).toContain('Orden de compra / contrato');
+    expect(categoriasNoDisponibles('privada', 'desierta', 'compras')).toContain('Orden de compra / contrato');
+  });
+
+  it('con una orden de compra cargada solo se cierra adjudicando', () => {
+    const d = { ...base, tipo: 'privada' as const, cantidadAdjudicaciones: 1, cantidadDocumentosAdjudicacion: 1 };
+    expect(validarTransicion(d, 'adjudicada', 'compras', null)).toEqual([]);
+    expect(validarTransicion(d, 'desierta', 'compras', 'No se presentaron ofertas')).toEqual([
+      'Hay una orden de compra o ampliación cargada: sin adjudicación no corresponde. Quitala antes de cerrar.',
+    ]);
+    expect(validarTransicion({ ...d, estado: 'borrador' }, 'anulada', 'compras', 'Se dejó sin efecto')).toHaveLength(1);
   });
 
   it('un concurso pasa por «En trámite» antes de adjudicarse', () => {

@@ -124,6 +124,17 @@ describe('ciclo completo de una licitación pública', () => {
     expect(acciones(id).filter((a) => a === 'estado')).toHaveLength(1);
   });
 
+  it('la orden de compra de una privada se sube en borrador y obliga a adjudicar', () => {
+    const id = crearListo(publica({ tipo: 'privada' }));
+    const oc = registrarDocumento(db, compras, id, {
+      titulo: 'Orden de compra', categoria: 'Orden de compra / contrato', archivo: 'oc.pdf', nombreOriginal: 'oc.pdf', mime: 'application/pdf', tamano: 1, publico: true,
+    });
+    expect(() => cambiarEstado(db, compras, id, 'desierta', 'No se presentaron ofertas')).toThrow(ErrorNegocio);
+    quitarDocumento(db, compras, oc);
+    cambiarEstado(db, compras, id, 'desierta', 'No se presentaron ofertas');
+    expect(detalle(db, id).estado).toBe('desierta');
+  });
+
   it('los adjudicatarios solo se cargan con las ofertas abiertas', () => {
     const id = crearListo(publica({ tipo: 'concurso' }));
     const germano = { proveedor: 'Germano S.R.L.', cuit: '20123456786', monto: 100 };
