@@ -101,8 +101,20 @@ describe('ciclo completo de una licitación pública', () => {
     expect(acciones(id)).toEqual(['creado']);
   });
 
-  it('los adjudicatarios solo se cargan con las ofertas abiertas', () => {
+  it('una privada se carga terminada y se publica directo con su resultado', () => {
     const id = crearProcedimiento(db, compras, publica({ tipo: 'privada' }));
+    actualizarProcedimiento(db, compras, id, publica({ tipo: 'privada', cantidadOfertantes: 3 }));
+    agregarAdjudicacion(db, compras, id, { proveedor: 'Germano S.R.L.', cuit: '20123456786', monto: 100 });
+    registrarDocumento(db, compras, id, {
+      titulo: 'Decreto', categoria: 'Decreto de adjudicación', archivo: 'd.pdf', nombreOriginal: 'd.pdf', mime: 'application/pdf', tamano: 1, publico: true,
+    });
+    cambiarEstado(db, compras, id, 'adjudicada', null);
+    expect(detalle(db, id).estado).toBe('adjudicada');
+    expect(acciones(id).filter((a) => a === 'estado')).toHaveLength(1);
+  });
+
+  it('los adjudicatarios solo se cargan con las ofertas abiertas', () => {
+    const id = crearProcedimiento(db, compras, publica({ tipo: 'concurso' }));
     const germano = { proveedor: 'Germano S.R.L.', cuit: '20123456786', monto: 100 };
     expect(() => agregarAdjudicacion(db, compras, id, germano)).toThrow(/En trámite de adjudicación/);
     cambiarEstado(db, compras, id, 'tramite', null);

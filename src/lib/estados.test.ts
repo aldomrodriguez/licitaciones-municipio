@@ -9,8 +9,20 @@ describe('transiciones', () => {
     expect(validarTransicion(base, 'adjudicada', 'admin', null)).toHaveLength(1);
   });
 
-  it('una privada pasa por «En trámite» antes de adjudicarse', () => {
-    const d = { ...base, tipo: 'privada' as const, cantidadAdjudicaciones: 1 };
+  it('una privada pasa de borrador directo al resultado, con sus requisitos', () => {
+    const d = { ...base, tipo: 'privada' as const };
+    expect(validarTransicion(d, 'adjudicada', 'compras', null)).toEqual(['Para adjudicar hay que cargar al menos un adjudicatario con su monto.']);
+    expect(validarTransicion({ ...d, cantidadAdjudicaciones: 1 }, 'adjudicada', 'compras', null)).toEqual([]);
+    expect(validarTransicion(d, 'desierta', 'compras', null)).toHaveLength(1);
+    expect(validarTransicion(d, 'desierta', 'compras', 'No se presentaron ofertas')).toEqual([]);
+    expect(reglasEtapa('privada', 'borrador', 'compras')).toMatchObject({ adjudicatarios: true });
+    expect(reglasEtapa('privada', 'borrador', 'compras').campos.has('cantidadOfertantes')).toBe(true);
+    expect(reglasEtapa('privada', 'borrador', 'compras').categorias).toContain('Decreto de adjudicación');
+    expect(categoriasNoDisponibles('privada', 'borrador', 'compras')).toContain('Orden de compra / contrato');
+  });
+
+  it('un concurso pasa por «En trámite» antes de adjudicarse', () => {
+    const d = { ...base, tipo: 'concurso' as const, cantidadAdjudicaciones: 1 };
     expect(validarTransicion(d, 'adjudicada', 'compras', null)).toHaveLength(1);
     expect(validarTransicion(d, 'tramite', 'compras', null)).toEqual([]);
     expect(validarTransicion({ ...d, estado: 'tramite' }, 'adjudicada', 'compras', null)).toEqual([]);

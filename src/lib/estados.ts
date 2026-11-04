@@ -104,9 +104,10 @@ const FLUJOS: Record<Tipo, Partial<Record<Estado, readonly Estado[]>>> = {
     llamado: ['evaluacion', 'desierta', 'anulada'],
     evaluacion: ['adjudicada', 'desierta', 'fracasada', 'anulada'],
   },
-  // Aunque se carguen a destiempo, pasan por «En trámite»: ahí se cargan ofertas y adjudicatarios.
+  // Las privadas se cargan cuando ya terminaron (para que no se presente nadie sin invitación):
+  // desde el borrador se pasan directo al resultado. «En trámite» queda por si se cargan antes.
   privada: {
-    borrador: ['tramite', 'anulada'],
+    borrador: ['tramite', 'adjudicada', 'desierta', 'fracasada', 'anulada'],
     tramite: ['adjudicada', 'desierta', 'fracasada', 'anulada'],
   },
   concurso: {
@@ -270,6 +271,18 @@ const ETAPA: Record<Estado, Etapa> = {
   anulada: 3,
 };
 
+/**
+ * Modalidades que se cargan ya terminadas: en borrador se completa todo lo de la etapa 2
+ * (ofertas, adjudicatarios, actas y decretos), para publicarlas directo con su resultado.
+ */
+const CARGA_AL_FINAL: readonly Tipo[] = ['privada'];
+
+/** Etapas cuyas reglas de carga valen en este estado. */
+function etapasDeCarga(tipo: Tipo, estado: Estado): readonly Etapa[] {
+  const etapa = ETAPA[estado];
+  return etapa === 0 && CARGA_AL_FINAL.includes(tipo) ? [0, 2] : [etapa];
+}
+
 /** Etapas en que se puede modificar cada campo. */
 const CAMPOS_POR_ETAPA: Record<CampoEtapa, readonly Etapa[]> = {
   numero: [0],
@@ -321,7 +334,7 @@ const GUIAS: Record<Tipo, Record<Etapa, string>> = {
     3: 'Procedimiento cerrado. Solo se pueden agregar observaciones y documentación (decreto, orden de compra, ampliaciones).',
   },
   privada: {
-    0: 'Completá los datos y los proveedores invitados. Cuando tengas las ofertas, pasalo a «En trámite de adjudicación».',
+    0: 'Cargá todo junto: datos, invitados, ofertas recibidas, documentación y adjudicatarios. No se publica hasta que elijas el resultado (adjudicada, desierta, fracasada o anulada).',
     1: '',
     2: 'Cargá la cantidad de ofertas, la documentación y los adjudicatarios. Después adjudicá o cerrá el procedimiento.',
     3: 'Procedimiento cerrado. Solo se pueden agregar observaciones y documentación (decreto, orden de compra, ampliaciones).',
@@ -335,19 +348,20 @@ const GUIAS: Record<Tipo, Record<Etapa, string>> = {
 };
 
 export function reglasEtapa(tipo: Tipo, estado: Estado, rol: Rol): ReglasEtapa {
-  const etapa = ETAPA[estado];
+  const etapas = etapasDeCarga(tipo, estado);
+  const ultima = Math.max(...etapas);
   const camposModalidad = new Set(CAMPOS_POR_TIPO[tipo]);
   const campos = new Set(
     CAMPOS_POR_TIPO[tipo].filter((c) => {
       // Un admin puede corregir número y año aunque ya esté publicado (cambia la dirección pública).
       if (rol === 'admin' && (c === 'numero' || c === 'anio')) return true;
-      return CAMPOS_POR_ETAPA[c].includes(etapa);
+      return CAMPOS_POR_ETAPA[c].some((e) => etapas.includes(e));
     }),
   );
   const categorias = CATEGORIAS.filter(
-    (c) => DOCUMENTO_DESDE[c] <= etapa && (!SOLO_ADJUDICADA.includes(c) || estado === 'adjudicada'),
+    (c) => DOCUMENTO_DESDE[c] <= ultima && (!SOLO_ADJUDICADA.includes(c) || estado === 'adjudicada'),
   );
-  return { campos, camposModalidad, adjudicatarios: etapa === 2, categorias, guia: GUIAS[tipo][etapa] };
+  return { campos, camposModalidad, adjudicatarios: etapas.includes(2), categorias, guia: GUIAS[tipo][ETAPA[estado]] };
 }
 
 /** Por qué un campo no se puede editar ahora (para mostrar al lado del campo). */
