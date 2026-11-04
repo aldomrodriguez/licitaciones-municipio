@@ -11,9 +11,10 @@ interface Props {
   estado: Estado;
   rol: Rol;
   cantidadAdjudicaciones: number;
+  cantidadInvitados: number;
 }
-const { p, estado, rol, cantidadAdjudicaciones } = Astro.props;
-const datos = { tipo: p.tipo, estado, fechaApertura: p.fechaApertura, cantidadAdjudicaciones };
+const { p, estado, rol, cantidadAdjudicaciones, cantidadInvitados } = Astro.props;
+const datos = { tipo: p.tipo, estado, fechaApertura: p.fechaApertura, cantidadAdjudicaciones, cantidadInvitados };
 const { guia } = reglasEtapa(p.tipo, estado, rol);
 const opciones = transicionesPosibles(p.tipo, estado, rol);
 const def = ESTADOS[estado];

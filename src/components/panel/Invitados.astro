@@ -1,0 +1,154 @@
+---
+/**
+ * Proveedores invitados. La invitación sale por correo en papel: acá solo se registra a quién
+ * se invitó y si compró el pliego. En el sitio se publica solo la cantidad.
+ */
+import type { Invitado, Tipo } from '../../lib/db/schema';
+import { MINIMO_INVITADOS } from '../../lib/estados';
+import Icono from '../ui/Icono.astro';
+import quitar from '@tabler/icons/outline/x.svg?raw';
+import tilde from '@tabler/icons/outline/check.svg?raw';
+
+interface Props {
+  procedimientoId: number;
+  tipo: Tipo;
+  lista: Invitado[];
+  /** Cantidad importada de la página anterior, sin nombres. */
+  cantidadHistorica: number | null;
+  editable: boolean;
+  cerrado: boolean;
+}
+const { procedimientoId, tipo, lista, cantidadHistorica, editable, cerrado } = Astro.props;
+const minimo = MINIMO_INVITADOS[tipo];
+const faltan = Math.max(0, minimo - lista.length);
+const soloHistorica = lista.length === 0 && cantidadHistorica != null;
+---
+
+<section aria-labelledby="t-invitados" class="rounded-lg border border-linea bg-white p-5 sm:p-6">
+  <div class="flex flex-wrap items-baseline justify-between gap-2">
+    <h2 id="t-invitados" class="text-lg font-bold">Proveedores invitados</h2>
+    {
+      !soloHistorica && (
+        <p class:list={['cifras text-sm', faltan > 0 && !cerrado ? 'font-semibold text-alerta' : 'text-gris']}>
+          {lista.length} {lista.length === 1 ? 'invitado' : 'invitados'} · mínimo {minimo}
+        </p>
+      )
+    }
+  </div>
+  <p class="mt-1 text-sm text-gris">La invitación se envía en papel; acá se registra a quién. En el sitio se publica solo la cantidad, sin nombres.</p>
+
+  {
+    soloHistorica && (
+      <p class="mt-4 rounded-md bg-papel px-3 py-2 text-sm">
+        Se importaron <b class="cifras">{cantidadHistorica}</b> invitados de la página anterior, sin nombres.
+        {editable && ' Si cargás la lista, pasa a contar la lista.'}
+      </p>
+    )
+  }
+
+  {
+    lista.length > 0 && (
+      <table class="cifras mt-4 w-full text-left text-sm">
+        <caption class="sr-only">Proveedores invitados</caption>
+        <thead class="border-b border-tinta text-[13px] text-gris">
+          <tr>
+            <th scope="col" class="py-2 font-semibold">Proveedor y CUIT</th>
+            <th scope="col" class="py-2 font-semibold">Pliego</th>
+            {editable && <th scope="col"><span class="sr-only">Acciones</span></th>}
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-linea">
+          {lista.map((i) => (
+            <tr>
+              <td class="py-2.5 pr-3">
+                {i.proveedor}
+                {i.cuit && <span class="block text-[13px] whitespace-nowrap text-gris">{i.cuit}</span>}
+              </td>
+              <td class="py-1.5 pr-3 whitespace-nowrap">
+                {editable ? (
+                  <form
+                    method="post"
+                    data-accion="marcarPliegoComprado"
+                    data-titulo={i.comproPliego ? `¿Quitar la marca de pliego comprado a ${i.proveedor}?` : `¿${i.proveedor} compró el pliego?`}
+                    data-detalle="Queda registrado en el historial. No se publica."
+                    data-boton={i.comproPliego ? 'Quitar la marca' : 'Sí, lo compró'}
+                    data-exito="Invitado actualizado."
+                  >
+                    <input type="hidden" name="invitadoId" value={i.id} />
+                    <input type="hidden" name="compro" value={i.comproPliego ? 'no' : 'si'} />
+                    {i.comproPliego ? (
+                      <button type="submit" class="inline-flex items-center gap-1 rounded-full bg-exito-fondo px-2.5 py-1 text-[13px] font-semibold text-exito hover:underline" aria-label={`${i.proveedor} compró el pliego. Quitar la marca`}>
+                        <Icono svg={tilde} tamano={14} /> Compró el pliego
+                      </button>
+                    ) : (
+                      <button type="submit" class="rounded-full px-2.5 py-1 text-[13px] text-gris hover:bg-papel hover:text-tinta" aria-label={`Marcar que ${i.proveedor} compró el pliego`}>
+                        Marcar compra
+                      </button>
+                    )}
+                  </form>
+                ) : (
+                  i.comproPliego && (
+                    <span class="inline-flex items-center gap-1 rounded-full bg-exito-fondo px-2.5 py-1 text-[13px] font-semibold text-exito">
+                      <Icono svg={tilde} tamano={14} /> Compró el pliego
+                    </span>
+                  )
+                )}
+              </td>
+              {editable && (
+                <td class="w-10 py-1 text-right">
+                  <form
+                    method="post"
+                    data-accion="quitarInvitado"
+                    data-titulo={`¿Quitar a ${i.proveedor} de los invitados?`}
+                    data-detalle={`Quedan ${lista.length - 1} invitados (mínimo ${minimo}).|Queda registrado en el historial.`}
+                    data-tono="peligro"
+                    data-boton="Quitar invitado"
+                    data-exito="Invitado quitado."
+                  >
+                    <input type="hidden" name="invitadoId" value={i.id} />
+                    <button type="submit" class="btn-fantasma p-2" aria-label={`Quitar a ${i.proveedor}`}>
+                      <Icono svg={quitar} tamano={16} />
+                    </button>
+                  </form>
+                </td>
+              )}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )
+  }
+
+  {lista.length === 0 && !soloHistorica && <p class="mt-4 text-sm text-gris">{editable ? `Todavía no hay invitados. Por ley hacen falta al menos ${minimo}.` : 'Sin invitados cargados.'}</p>}
+  {!editable && cerrado && <p class="mt-4 text-sm text-gris">El procedimiento está cerrado: para cambiar los invitados, un administrador tiene que reabrirlo.</p>}
+
+  {
+    editable && (
+      <details class="mt-5 rounded-md border border-linea" open={lista.length < minimo}>
+        <summary class="cursor-pointer px-4 py-3 text-sm font-semibold text-marca">Agregar invitado</summary>
+        <form
+          method="post"
+          class="grid gap-3 border-t border-linea p-4 sm:grid-cols-[1.6fr_1fr_auto] sm:items-end"
+          data-accion="agregarInvitado"
+          data-diff
+          data-titulo="¿Agregar el invitado?"
+          data-detalle={`Pasan a ser ${lista.length + 1} invitados (mínimo ${minimo}).`}
+          data-boton="Agregar"
+          data-exito="Invitado agregado."
+        >
+          <input type="hidden" name="id" value={procedimientoId} />
+          <div>
+            <label for="inv-proveedor" class="etiqueta">Proveedor</label>
+            <input id="inv-proveedor" name="proveedor" required minlength="2" class="campo" data-etiqueta="Proveedor" />
+          </div>
+          <div>
+            <label for="inv-cuit" class="etiqueta">CUIT <span class="font-normal text-gris">(opcional)</span></label>
+            <input id="inv-cuit" name="cuit" inputmode="numeric" autocomplete="off" maxlength="13" placeholder="30-12345678-1" class="campo cifras" data-etiqueta="CUIT" data-cuit aria-describedby="inv-cuit-ayuda" />
+          </div>
+          <button type="submit" class="btn-primario">Agregar</button>
+          <p id="inv-cuit-ayuda" class="ayuda -mt-1 sm:col-span-3">CUIT: escribí solo los números, los guiones se ponen solos.</p>
+        </form>
+      </details>
+    )
+  }
+</section>

@@ -1,7 +1,13 @@
 import { expect, test } from './fixtures';
+import type { Page } from '@playwright/test';
 import { ADMIN, URL_BASE } from '../../playwright.config';
 
-test('privada: las cantidades solo aceptan números, en un campo angosto', async ({ page }) => {
+async function confirmar(page: Page) {
+  await expect(page.locator('#dlg-confirmar')).toBeVisible();
+  await page.locator('#dlg-ok').click();
+}
+
+test('privada: se carga en borrador con invitados y ofertas, y se publica directo con el resultado', async ({ page }) => {
   await page.goto('/panel/login');
   await page.getByLabel('Email').fill(ADMIN.email);
   await page.getByLabel('Contraseña').fill(ADMIN.clave);
@@ -16,12 +22,31 @@ test('privada: las cantidades solo aceptan números, en un campo angosto', async
   const filas = (await alta.json()) as [{ id: number }, ...number[]];
   await page.goto(`/panel/procedimientos/${filas[filas[0].id]}`);
 
-  for (const etiqueta of ['Cantidad de proveedores invitados', 'Cantidad de ofertas recibidas']) {
-    const campo = page.getByLabel(etiqueta);
-    await campo.pressSequentially('3e-,2a');
-    await expect(campo).toHaveValue('32');
-    expect((await campo.boundingBox())!.width).toBeLessThan(150);
+  // Las ofertas recibidas: campo angosto que solo acepta dígitos.
+  const ofertas = page.getByLabel('Cantidad de ofertas recibidas');
+  await ofertas.pressSequentially('3e-,2a');
+  await expect(ofertas).toHaveValue('32');
+  expect((await ofertas.boundingBox())!.width).toBeLessThan(150);
+
+  // Sin «En trámite»: el resultado, pero recién con 5 invitados.
+  const estado = page.getByRole('region', { name: 'Estado actual' });
+  await expect(estado.getByRole('button', { name: 'En trámite de adjudicación' })).toHaveCount(0);
+  await expect(estado).toContainText('al menos 5 proveedores invitados');
+
+  // El CUIT es opcional; si se carga, se valida.
+  const invitados = page.getByRole('region', { name: 'Proveedores invitados' });
+  await page.locator('#inv-proveedor').fill('Con CUIT S.A.');
+  await page.locator('#inv-cuit').fill('30712345671');
+  await invitados.getByRole('button', { name: 'Agregar', exact: true }).click();
+  await confirmar(page);
+  await expect(invitados).toContainText('30-71234567-1');
+  for (const n of [2, 3, 4, 5]) {
+    await page.locator('#inv-proveedor').fill(`Invitado ${n}`);
+    await invitados.getByRole('button', { name: 'Agregar', exact: true }).click();
+    await confirmar(page);
+    await expect(invitados).toContainText(`Invitado ${n}`);
   }
-  // En borrador ya se puede pasar directo al resultado.
-  await expect(page.getByRole('button', { name: 'Desierta' })).toBeVisible();
+  await expect(invitados).toContainText('5 invitados · mínimo 5');
+  await expect(estado).not.toContainText('al menos 5 proveedores invitados');
+  await expect(estado.getByRole('button', { name: 'Desierta' })).toBeEnabled();
 });

@@ -35,6 +35,10 @@ test('un objeto con </script> no ejecuta nada en la ficha pública', async ({ pa
   });
   expect(alta.ok()).toBe(true);
   const id = idDeRespuesta(await alta.json());
+  for (const n of [1, 2, 3]) {
+    const inv = await page.request.post('/_actions/agregarInvitado', { multipart: { id: String(id), proveedor: `Invitado ${n}` }, headers: origen });
+    expect(inv.ok()).toBe(true);
+  }
   const estado = await page.request.post('/_actions/cambiarEstado', { multipart: { id: String(id), destino: 'tramite' }, headers: origen });
   expect(estado.ok()).toBe(true);
 

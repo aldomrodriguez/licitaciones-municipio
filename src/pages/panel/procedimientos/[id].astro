@@ -3,6 +3,7 @@ import Panel from '../../../layouts/Panel.astro';
 import FormProcedimiento from '../../../components/panel/FormProcedimiento.astro';
 import TarjetaEstado from '../../../components/panel/TarjetaEstado.astro';
 import Adjudicaciones from '../../../components/panel/Adjudicaciones.astro';
+import Invitados from '../../../components/panel/Invitados.astro';
 import Documentos from '../../../components/panel/Documentos.astro';
 import Historial from '../../../components/panel/Historial.astro';
 import Icono from '../../../components/ui/Icono.astro';
@@ -71,6 +72,14 @@ const avisoAdjudicatarios = enPapelera || reglas.adjudicatarios
   <div class="mt-8 grid gap-8 lg:grid-cols-[1fr_320px]">
     <div class="min-w-0 space-y-8">
       {editable ? <FormProcedimiento p={p} estado={d.estado} rol={usuario.rol} /> : <p class="text-gris">{p.objeto}</p>}
+      <Invitados
+        procedimientoId={p.id}
+        tipo={p.tipo}
+        lista={d.invitados}
+        cantidadHistorica={p.invitados}
+        editable={editable && reglas.invitados}
+        cerrado={ESTADOS[d.estado].final}
+      />
       <Adjudicaciones procedimientoId={p.id} lista={d.adjudicaciones} total={d.totalAdjudicado} editable={editable && reglas.adjudicatarios} aviso={avisoAdjudicatarios} />
       <Documentos
         procedimientoId={p.id}
@@ -84,7 +93,7 @@ const avisoAdjudicatarios = enPapelera || reglas.adjudicatarios
       <Historial lista={d.historial} />
     </div>
     <aside class="space-y-6 lg:sticky lg:top-6 lg:self-start">
-      {editable && <TarjetaEstado p={p} estado={d.estado} rol={usuario.rol} cantidadAdjudicaciones={d.adjudicaciones.length} />}
+      {editable && <TarjetaEstado p={p} estado={d.estado} rol={usuario.rol} cantidadAdjudicaciones={d.adjudicaciones.length} cantidadInvitados={d.cantidadInvitados} />}
       {
         editable && (
           <section aria-labelledby="t-eliminar" class="rounded-lg border border-linea bg-white p-5">

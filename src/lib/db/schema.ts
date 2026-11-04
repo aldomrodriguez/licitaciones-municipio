@@ -37,6 +37,7 @@ export const procedimientos = sqliteTable(
     valorPliego: integer('valor_pliego'),
     fechaApertura: integer('fecha_apertura', { mode: 'timestamp_ms' }),
     lugarApertura: text('lugar_apertura'),
+    /** Cantidad histórica importada, sin nombres. Lo nuevo se carga en la tabla `invitados`. */
     invitados: integer('invitados'),
     cantidadOfertantes: integer('cantidad_ofertantes'),
     estado: text('estado').notNull().default('borrador'),
@@ -61,6 +62,18 @@ export const adjudicaciones = sqliteTable('adjudicaciones', {
   cuit: text('cuit'),
   /** Centavos. Null solo en registros históricos importados que no informaban el monto. */
   monto: integer('monto'),
+  orden: integer('orden').notNull().default(0),
+});
+
+/** Proveedores invitados (la invitación sale en papel; acá solo se registra). No se publican los nombres. */
+export const invitados = sqliteTable('invitados', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  procedimientoId: integer('procedimiento_id')
+    .notNull()
+    .references(() => procedimientos.id, { onDelete: 'cascade' }),
+  proveedor: text('proveedor').notNull(),
+  cuit: text('cuit'),
+  comproPliego: integer('compro_pliego', { mode: 'boolean' }).notNull().default(false),
   orden: integer('orden').notNull().default(0),
 });
 
@@ -103,6 +116,9 @@ export const historial = sqliteTable(
         'documento_restaurado',
         'adjudicacion_agregada',
         'adjudicacion_quitada',
+        'invitado_agregado',
+        'invitado_quitado',
+        'invitado_pliego',
         'eliminado',
         'restaurado',
       ],
@@ -119,6 +135,7 @@ export const historial = sqliteTable(
 
 export type Procedimiento = typeof procedimientos.$inferSelect;
 export type Adjudicacion = typeof adjudicaciones.$inferSelect;
+export type Invitado = typeof invitados.$inferSelect;
 export type Documento = typeof documentos.$inferSelect;
 export type EntradaHistorial = typeof historial.$inferSelect;
 export type Usuario = typeof usuarios.$inferSelect;

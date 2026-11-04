@@ -8,6 +8,7 @@ import {
   adjudicaciones,
   documentos,
   historial,
+  invitados,
   procedimientos,
   type AccionHistorial,
   type Procedimiento,
@@ -51,7 +52,6 @@ export interface DatosProcedimiento {
   valorPliego: number | null;
   fechaApertura: Date | null;
   lugarApertura: string | null;
-  invitados: number | null;
   cantidadOfertantes: number | null;
   observacionesPublicas: string | null;
 }
@@ -69,7 +69,6 @@ export const CAMPOS: Record<CampoEditable, { etiqueta: string; formato: (v: Dato
   valorPliego: { etiqueta: 'Valor del pliego', formato: (v) => formatearMonto(v as number | null) },
   fechaApertura: { etiqueta: 'Fecha de apertura', formato: (v) => formatearFecha(v as Date | null, 'corta') },
   lugarApertura: { etiqueta: 'Lugar de apertura', formato: texto },
-  invitados: { etiqueta: 'Proveedores invitados', formato: texto },
   cantidadOfertantes: { etiqueta: 'Ofertas recibidas', formato: texto },
   observacionesPublicas: { etiqueta: 'Observaciones', formato: texto },
 };
@@ -147,10 +146,8 @@ function validarDatos(datos: DatosProcedimiento): string[] {
     const v = datos[campo];
     if (v != null && (!Number.isInteger(v) || v < 0)) errores.push(`${CAMPOS[campo].etiqueta}: monto inválido.`);
   }
-  for (const campo of ['invitados', 'cantidadOfertantes'] as const) {
-    const v = datos[campo];
-    if (v != null && (!Number.isInteger(v) || v < 0)) errores.push(`${CAMPOS[campo].etiqueta}: tiene que ser un número entero.`);
-  }
+  const ofertas = datos.cantidadOfertantes;
+  if (ofertas != null && (!Number.isInteger(ofertas) || ofertas < 0)) errores.push(`${CAMPOS.cantidadOfertantes.etiqueta}: tiene que ser un número entero.`);
   return errores;
 }
 
@@ -174,7 +171,6 @@ function limpiarPorModalidad(datos: DatosProcedimiento): DatosProcedimiento {
     ...datos,
     valorPliego: m.has('valorPliego') ? datos.valorPliego : null,
     lugarApertura: m.has('lugarApertura') ? datos.lugarApertura : null,
-    invitados: m.has('invitados') ? datos.invitados : null,
   };
 }
 
@@ -271,7 +267,7 @@ export function cambiarEstado(db: Db, actor: Actor, id: number, destino: Estado,
       .where(eq(adjudicaciones.procedimientoId, id))
       .get()?.n ?? 0;
     const errores = validarTransicion(
-      { tipo: p.tipo, estado: actual, fechaApertura: p.fechaApertura, cantidadAdjudicaciones },
+      { tipo: p.tipo, estado: actual, fechaApertura: p.fechaApertura, cantidadAdjudicaciones, cantidadInvitados: contarInvitados(tx, p) },
       destino,
       actor.rol,
       motivo,
@@ -352,6 +348,83 @@ export function quitarAdjudicacion(db: Db, actor: Actor, adjudicacionId: number)
       valorAnterior: `${a.proveedor} (${formatearMonto(a.monto)})`,
     });
     tocar(tx, a.procedimientoId);
+  });
+}
+
+// ─── Proveedores invitados ───────────────────────────────────────────────────
+
+/** Invitados con nombre; si no hay, la cantidad histórica importada. */
+function contarInvitados(tx: Tx | Db, p: Procedimiento): number {
+  const n = tx.select({ n: sql<number>`count(*)` }).from(invitados).where(eq(invitados.procedimientoId, p.id)).get()?.n ?? 0;
+  return n > 0 ? n : (p.invitados ?? 0);
+}
+
+function exigirInvitadosEditables(p: Procedimiento, actor: Actor) {
+  if (reglasEtapa(p.tipo, estadoDe(p), actor.rol).invitados) return;
+  throw new ErrorNegocio(['El procedimiento está cerrado: para cambiar los invitados, un administrador tiene que reabrirlo.']);
+}
+
+export interface DatosInvitado {
+  proveedor: string;
+  /** Opcional: la invitación sale en papel y no siempre se tiene. */
+  cuit: string | null;
+}
+
+export function agregarInvitado(db: Db, actor: Actor, procedimientoId: number, datos: DatosInvitado): number {
+  const proveedor = datos.proveedor.trim();
+  const cuit = datos.cuit?.trim() || null;
+  const errores: string[] = [];
+  if (proveedor.length < 2) errores.push('Indicá el nombre del proveedor.');
+  const fallaCuit = cuit ? errorCuit(cuit) : null;
+  if (fallaCuit) errores.push(fallaCuit);
+  if (errores.length) throw new ErrorNegocio(errores);
+  return db.transaction((tx) => {
+    exigirInvitadosEditables(obtenerActivo(tx, procedimientoId), actor);
+    const cargados = tx.select().from(invitados).where(eq(invitados.procedimientoId, procedimientoId)).all();
+    const cuitFormateado = cuit ? formatearCuit(cuit) : null;
+    if (cargados.some((i) => i.proveedor.toLocaleLowerCase('es') === proveedor.toLocaleLowerCase('es') || (cuitFormateado && i.cuit === cuitFormateado))) {
+      throw new ErrorNegocio([`${proveedor} ya está en la lista de invitados.`]);
+    }
+    const orden = Math.max(-1, ...cargados.map((i) => i.orden)) + 1;
+    const { id } = tx
+      .insert(invitados)
+      .values({ procedimientoId, proveedor, cuit: cuitFormateado, orden })
+      .returning({ id: invitados.id })
+      .get();
+    registrar(tx, actor, procedimientoId, { accion: 'invitado_agregado', valorNuevo: proveedor });
+    tocar(tx, procedimientoId);
+    return id;
+  });
+}
+
+function obtenerInvitado(tx: Tx, invitadoId: number) {
+  const i = tx.select().from(invitados).where(eq(invitados.id, invitadoId)).get();
+  if (!i) throw new ErrorNegocio(['El invitado no existe.']);
+  return i;
+}
+
+export function quitarInvitado(db: Db, actor: Actor, invitadoId: number) {
+  db.transaction((tx) => {
+    const i = obtenerInvitado(tx, invitadoId);
+    exigirInvitadosEditables(obtenerActivo(tx, i.procedimientoId), actor);
+    tx.delete(invitados).where(eq(invitados.id, invitadoId)).run();
+    registrar(tx, actor, i.procedimientoId, { accion: 'invitado_quitado', valorAnterior: i.proveedor });
+    tocar(tx, i.procedimientoId);
+  });
+}
+
+export function marcarPliegoComprado(db: Db, actor: Actor, invitadoId: number, compro: boolean) {
+  db.transaction((tx) => {
+    const i = obtenerInvitado(tx, invitadoId);
+    exigirInvitadosEditables(obtenerActivo(tx, i.procedimientoId), actor);
+    if (i.comproPliego === compro) return;
+    tx.update(invitados).set({ comproPliego: compro }).where(eq(invitados.id, invitadoId)).run();
+    registrar(tx, actor, i.procedimientoId, {
+      accion: 'invitado_pliego',
+      campo: i.proveedor,
+      valorNuevo: compro ? 'compró el pliego' : 'no compró el pliego',
+    });
+    tocar(tx, i.procedimientoId);
   });
 }
 
@@ -497,6 +570,7 @@ export function detalle(db: Db, id: number) {
     .where(and(eq(documentos.procedimientoId, id), isNull(documentos.eliminadoEn)))
     .orderBy(asc(documentos.subidoEn))
     .all();
+  const inv = db.select().from(invitados).where(eq(invitados.procedimientoId, id)).orderBy(asc(invitados.orden)).all();
   const hist = db
     .select()
     .from(historial)
@@ -507,6 +581,9 @@ export function detalle(db: Db, id: number) {
     procedimiento: p,
     estado: estadoDe(p),
     adjudicaciones: adj,
+    invitados: inv,
+    /** Los cargados con nombre o, si no hay, la cantidad histórica importada. */
+    cantidadInvitados: inv.length > 0 ? inv.length : (p.invitados ?? 0),
     totalAdjudicado: sumarMontos(adj.flatMap((a) => (a.monto == null ? [] : [a.monto]))),
     documentos: docs,
     historial: hist,
@@ -613,6 +690,8 @@ export function detallePublico(db: Db, tipo: Tipo, anio: number, numero: number)
     ...d,
     adjudicaciones: adjudicada ? d.adjudicaciones : [],
     totalAdjudicado: adjudicada ? d.totalAdjudicado : 0,
+    // De los invitados se publica solo la cantidad, como en la página anterior.
+    invitados: [],
     documentos: d.documentos.filter((doc) => doc.publico),
     historial: d.historial.filter((h) => h.publico),
   };

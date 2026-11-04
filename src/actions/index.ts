@@ -98,7 +98,7 @@ const enteroOpcional = z
   .transform((v, ctx) => {
     if (!v?.trim()) return null;
     if (!/^\d+$/.test(v.trim())) {
-      ctx.addIssue({ code: 'custom', message: 'Las cantidades de invitados y de ofertas van solo con números.' });
+      ctx.addIssue({ code: 'custom', message: 'La cantidad de ofertas recibidas va solo con números.' });
       return z.NEVER;
     }
     return Number(v.trim());
@@ -125,7 +125,6 @@ const datosProcedimiento = z.object({
       return d;
     }),
   lugarApertura: textoOpcional,
-  invitados: enteroOpcional,
   cantidadOfertantes: enteroOpcional,
   observacionesPublicas: textoOpcional,
 });
@@ -174,6 +173,36 @@ export const server = {
     handler: ({ id: pid, proveedor, cuit, monto: m }, ctx) => {
       if (m == null) throw new ActionError({ code: 'BAD_REQUEST', message: 'Indicá el monto adjudicado.' });
       return { id: ejecutar(() => P.agregarAdjudicacion(db(), actor(ctx), pid, { proveedor, cuit, monto: m })) };
+    },
+  }),
+
+  agregarInvitado: defineAction({
+    accept: 'form',
+    input: z.object({
+      id,
+      proveedor: z.string().trim().min(2, 'Indicá el proveedor.').max(300),
+      cuit: z.string().trim().max(20).nullish(),
+    }),
+    handler: ({ id: pid, proveedor, cuit }, ctx) => ({
+      id: ejecutar(() => P.agregarInvitado(db(), actor(ctx), pid, { proveedor, cuit: cuit ?? null })),
+    }),
+  }),
+
+  quitarInvitado: defineAction({
+    accept: 'form',
+    input: z.object({ invitadoId: id }),
+    handler: ({ invitadoId }, ctx) => {
+      ejecutar(() => P.quitarInvitado(db(), actor(ctx), invitadoId));
+      return { ok: true };
+    },
+  }),
+
+  marcarPliegoComprado: defineAction({
+    accept: 'form',
+    input: z.object({ invitadoId: id, compro: z.enum(['si', 'no']) }),
+    handler: ({ invitadoId, compro }, ctx) => {
+      ejecutar(() => P.marcarPliegoComprado(db(), actor(ctx), invitadoId, compro === 'si'));
+      return { ok: true };
     },
   }),
 

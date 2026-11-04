@@ -104,10 +104,10 @@ const FLUJOS: Record<Tipo, Partial<Record<Estado, readonly Estado[]>>> = {
     llamado: ['evaluacion', 'desierta', 'anulada'],
     evaluacion: ['adjudicada', 'desierta', 'fracasada', 'anulada'],
   },
-  // Las privadas se cargan cuando ya terminaron (para que no se presente nadie sin invitación):
-  // desde el borrador se pasan directo al resultado. «En trámite» queda por si se cargan antes.
+  // Las privadas se publican solo con su resultado (para que no se presente nadie sin invitación):
+  // se cargan en borrador y pasan directo al cierre. Las importadas «En trámite» siguen desde ahí.
   privada: {
-    borrador: ['tramite', 'adjudicada', 'desierta', 'fracasada', 'anulada'],
+    borrador: ['adjudicada', 'desierta', 'fracasada', 'anulada'],
     tramite: ['adjudicada', 'desierta', 'fracasada', 'anulada'],
   },
   concurso: {
@@ -130,6 +130,9 @@ const REAPERTURA: Record<Tipo, Estado> = {
   concurso: 'tramite',
 };
 
+/** Mínimo legal de proveedores invitados por modalidad. */
+export const MINIMO_INVITADOS: Record<Tipo, number> = { publica: 5, privada: 5, concurso: 3 };
+
 export type Rol = 'admin' | 'compras';
 
 export interface Transicion {
@@ -151,6 +154,7 @@ export interface DatosValidacion {
   estado: Estado;
   fechaApertura: Date | null;
   cantidadAdjudicaciones: number;
+  cantidadInvitados: number;
 }
 
 /** Devuelve los motivos por los que no se puede pasar a `destino` (vacío = se puede). */
@@ -179,6 +183,15 @@ export function validarTransicion(
     errores.push('Para abrir el llamado hay que cargar la fecha de apertura.');
   } else if (destino === 'llamado' && datos.fechaApertura && diaLobos(datos.fechaApertura) < diaLobos(ahora)) {
     errores.push('La fecha de apertura ya pasó: corregila antes de abrir el llamado.');
+  }
+  // El mínimo se exige al salir del borrador: los importados y las reaperturas no lo vuelven a pedir.
+  // Anular no lo pide: se puede dejar sin efecto antes de invitar a nadie.
+  const minimo = MINIMO_INVITADOS[datos.tipo];
+  if (datos.estado === 'borrador' && destino !== 'anulada' && datos.cantidadInvitados < minimo) {
+    errores.push(
+      `Hay que cargar al menos ${minimo} proveedores invitados (mínimo legal para una ${TIPOS[datos.tipo].nombre}).` +
+        (datos.cantidadInvitados > 0 ? ` Hay ${datos.cantidadInvitados}.` : ''),
+    );
   }
   if (destino === 'adjudicada' && datos.cantidadAdjudicaciones === 0) {
     errores.push('Para adjudicar hay que cargar al menos un adjudicatario con su monto.');
@@ -244,15 +257,14 @@ export type CampoEtapa =
   | 'valorPliego'
   | 'fechaApertura'
   | 'lugarApertura'
-  | 'invitados'
   | 'cantidadOfertantes'
   | 'observacionesPublicas';
 
 /** Campos que solo tienen sentido en ciertas modalidades. */
 const CAMPOS_POR_TIPO: Record<Tipo, readonly CampoEtapa[]> = {
   publica: ['numero', 'anio', 'objeto', 'areaSolicitante', 'presupuestoOficial', 'valorPliego', 'fechaApertura', 'lugarApertura', 'cantidadOfertantes', 'observacionesPublicas'],
-  privada: ['numero', 'anio', 'objeto', 'areaSolicitante', 'presupuestoOficial', 'fechaApertura', 'invitados', 'cantidadOfertantes', 'observacionesPublicas'],
-  concurso: ['numero', 'anio', 'objeto', 'areaSolicitante', 'presupuestoOficial', 'fechaApertura', 'invitados', 'cantidadOfertantes', 'observacionesPublicas'],
+  privada: ['numero', 'anio', 'objeto', 'areaSolicitante', 'presupuestoOficial', 'fechaApertura', 'cantidadOfertantes', 'observacionesPublicas'],
+  concurso: ['numero', 'anio', 'objeto', 'areaSolicitante', 'presupuestoOficial', 'fechaApertura', 'cantidadOfertantes', 'observacionesPublicas'],
 };
 
 /**
@@ -293,7 +305,6 @@ const CAMPOS_POR_ETAPA: Record<CampoEtapa, readonly Etapa[]> = {
   valorPliego: [0, 1],
   fechaApertura: [0, 1, 2], // en el llamado, moverla es una prórroga
   lugarApertura: [0, 1],
-  invitados: [0, 2],
   cantidadOfertantes: [2],
   observacionesPublicas: [0, 1, 2, 3],
 };
@@ -321,6 +332,8 @@ export interface ReglasEtapa {
   /** Campos de la modalidad (editables o no), para saber qué mostrar. */
   camposModalidad: ReadonlySet<CampoEtapa>;
   adjudicatarios: boolean;
+  /** Lista de invitados y si compraron el pliego: hasta el cierre. */
+  invitados: boolean;
   categorias: readonly Categoria[];
   /** Qué se hace en esta etapa, para orientar a quien carga. */
   guia: string;
@@ -328,19 +341,19 @@ export interface ReglasEtapa {
 
 const GUIAS: Record<Tipo, Record<Etapa, string>> = {
   publica: {
-    0: 'Completá los datos del llamado, la fecha de apertura, y subí el pliego. Cuando esté listo, abrí el llamado.',
+    0: 'Completá los datos del llamado y la fecha de apertura, cargá los proveedores invitados (mínimo 5) y subí el pliego. Cuando esté listo, abrí el llamado.',
     1: 'El llamado está publicado. Podés subir circulares y prórrogas, o mover la fecha de apertura. Después de la apertura, pasalo a «En evaluación».',
     2: 'Cargá la cantidad de ofertas, el acta de apertura, el dictamen y los adjudicatarios. Después adjudicá o cerrá el procedimiento.',
     3: 'Procedimiento cerrado. Solo se pueden agregar observaciones y documentación (decreto, orden de compra, ampliaciones).',
   },
   privada: {
-    0: 'Cargá todo junto: datos, invitados, ofertas recibidas, documentación y adjudicatarios. No se publica hasta que elijas el resultado (adjudicada, desierta, fracasada o anulada).',
+    0: 'Cargá todo junto: datos, proveedores invitados (mínimo 5), ofertas recibidas, documentación y adjudicatarios. No se publica hasta que elijas el resultado (adjudicada, desierta, fracasada o anulada).',
     1: '',
     2: 'Cargá la cantidad de ofertas, la documentación y los adjudicatarios. Después adjudicá o cerrá el procedimiento.',
     3: 'Procedimiento cerrado. Solo se pueden agregar observaciones y documentación (decreto, orden de compra, ampliaciones).',
   },
   concurso: {
-    0: 'Completá los datos y los proveedores invitados. Cuando tengas los presupuestos, pasalo a «En trámite de adjudicación».',
+    0: 'Completá los datos y los proveedores invitados (mínimo 3). Cuando tengas los presupuestos, pasalo a «En trámite de adjudicación».',
     1: '',
     2: 'Cargá la cantidad de presupuestos recibidos, la documentación y los adjudicatarios. Después adjudicá o cerrá el concurso.',
     3: 'Concurso cerrado. Solo se pueden agregar observaciones y documentación.',
@@ -361,7 +374,7 @@ export function reglasEtapa(tipo: Tipo, estado: Estado, rol: Rol): ReglasEtapa {
   const categorias = CATEGORIAS.filter(
     (c) => DOCUMENTO_DESDE[c] <= ultima && (!SOLO_ADJUDICADA.includes(c) || estado === 'adjudicada'),
   );
-  return { campos, camposModalidad, adjudicatarios: etapas.includes(2), categorias, guia: GUIAS[tipo][ETAPA[estado]] };
+  return { campos, camposModalidad, adjudicatarios: etapas.includes(2), invitados: ultima < 3, categorias, guia: GUIAS[tipo][ETAPA[estado]] };
 }
 
 /** Por qué un campo no se puede editar ahora (para mostrar al lado del campo). */

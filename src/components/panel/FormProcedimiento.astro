@@ -148,11 +148,6 @@ const todoBloqueado = [...reglas.camposModalidad].every((c) => c === 'observacio
         <input id="lugarApertura" name="lugarApertura" type="text" value={p?.lugarApertura ?? ''} placeholder="Ej. Oficina de Compras, Salgado 40" readonly={bloqueado('lugarApertura')} aria-describedby={nota('lugarApertura') ? 'n-lugar' : undefined} class={bloqueado('lugarApertura') ? 'campo cursor-not-allowed bg-papel text-gris' : 'campo'} data-etiqueta="Lugar de apertura" />
         {nota('lugarApertura') && <p id="n-lugar" class="ayuda">{nota('lugarApertura')}</p>}
       </div>
-      <div data-solo="privada concurso" hidden={solo(['privada', 'concurso'])}>
-        <label for="invitados" class="etiqueta">Cantidad de proveedores invitados</label>
-        <input id="invitados" name="invitados" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" value={p?.invitados ?? ''} placeholder={bloqueado('invitados') ? '—' : '0'} readonly={bloqueado('invitados')} aria-describedby={nota('invitados') ? 'n-invitados' : undefined} class={`${claseCampo('invitados')} max-w-28`} data-etiqueta="Proveedores invitados" data-entero />
-        {nota('invitados') && <p id="n-invitados" class="ayuda">{nota('invitados')}</p>}
-      </div>
       {/* En el alta no se muestra: recién se carga cuando se abren las ofertas. */}
       <div hidden={!edicion && bloqueado('cantidadOfertantes') ? true : undefined}>
         <label for="cantidadOfertantes" class="etiqueta">Cantidad de ofertas recibidas</label>
