@@ -51,3 +51,9 @@ test('el login se bloquea después de 5 intentos fallidos', async ({ page }) => 
   expect(bloqueado.status()).toBe(429);
   expect(await bloqueado.text()).toContain('Demasiados intentos fallidos');
 });
+
+test('el footer público lleva al panel, que pide ingresar', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('footer').getByRole('link', { name: 'Ingresar al panel' }).click();
+  await expect(page).toHaveURL(/\/panel\/login/);
+});
