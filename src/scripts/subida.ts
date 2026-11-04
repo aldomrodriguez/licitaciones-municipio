@@ -28,6 +28,7 @@ function categoriaSugerida(nombre: string): string | null {
   if (n.includes('acta')) return 'Acta de apertura';
   if (n.includes('decreto')) return 'Decreto de adjudicación';
   if (n.includes('ampliac')) return 'Ampliación';
+  if (n.includes('orden') || /\boc\b/.test(n)) return 'Orden de compra / contrato';
   if (/\.(jpe?g|png|webp)$/.test(n)) return 'Imagen';
   return null;
 }
@@ -151,14 +152,15 @@ export function iniciarSubida() {
       }
       const publicos = aSubir.filter((i) => i.publico.checked).length;
       let subidos = 0;
+      const subidosOk = new Set<(typeof aSubir)[number]>();
       const ok = await confirmar({
         titulo: aSubir.length === 1 ? '¿Subir este documento?' : `¿Subir estos ${aSubir.length} documentos?`,
         detalle: [
-          `Se agregan a ${raiz.dataset.nombre}.`,
+          `${aSubir.length === 1 ? 'Se agrega' : 'Se agregan'} a ${raiz.dataset.nombre}.`,
           publicos === 0
-            ? 'Todos quedan como internos: no se ven en el sitio.'
+            ? (aSubir.length === 1 ? 'Queda como interno: no se ve en el sitio.' : 'Todos quedan como internos: no se ven en el sitio.')
             : publicado
-              ? `${publicos === aSubir.length ? 'Todos se publican' : `${publicos} se publican`} en el sitio en cuanto se suban.`
+              ? `${publicos === aSubir.length ? (aSubir.length === 1 ? 'Se publica' : 'Todos se publican') : `${publicos} se publican`} en el sitio en cuanto se suban.`
               : 'Los marcados como públicos se van a ver cuando el procedimiento se publique.',
         ],
         lista: aSubir.map((i) => ({
@@ -168,24 +170,28 @@ export function iniciarSubida() {
         boton: 'Subir',
         ejecutar: async () => {
           const ok = document.getElementById('dlg-ok')!;
+          // Un archivo que falla no frena al resto; el reintento repite solo los que fallaron.
+          const fallas: string[] = [];
           for (const [n, it] of aSubir.entries()) {
-            if (n < subidos) continue; // reintento: no repetir los que ya subieron
+            if (subidosOk.has(it)) continue;
             const error = await subirUno(procedimientoId, it, (f) => {
               ok.textContent = `Subiendo ${n + 1} de ${aSubir.length} (${Math.round(f * 100)}%)`;
             });
-            if (error) {
-              return `${subidos > 0 ? `Se subieron ${subidos}. ` : ''}Falló «${it.titulo.value}»: ${error}`;
-            }
-            subidos++;
+            if (error) fallas.push(`«${it.titulo.value.trim()}»: ${error}`);
+            else subidosOk.add(it);
           }
-          return null;
+          subidos = subidosOk.size;
+          if (fallas.length === 0) return null;
+          const hechos = subidos > 0 ? `Se ${subidos === 1 ? 'subió 1' : `subieron ${subidos}`}. ` : '';
+          return `${hechos}No se ${fallas.length === 1 ? 'pudo subir' : 'pudieron subir'} ${fallas.join(' · ')} Cancelá para revisarlo o reintentá.`;
         },
       });
       if (ok) {
         avisarDespues(subidos === 1 ? 'Documento subido.' : `${subidos} documentos subidos.`);
         location.reload();
       } else if (subidos > 0) {
-        avisarDespues(`Se subieron ${subidos} de ${aSubir.length}. Los que fallaron no se guardaron.`);
+        const fallados = aSubir.filter((i) => !subidosOk.has(i)).map((i) => `«${i.titulo.value.trim()}»`);
+        avisarDespues(`Se subieron ${subidos} de ${aSubir.length}. No se guardaron: ${fallados.join(', ')}.`);
         location.reload();
       }
     });

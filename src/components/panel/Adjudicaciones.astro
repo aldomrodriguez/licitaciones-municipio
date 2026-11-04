@@ -49,7 +49,7 @@ const { procedimientoId, lista, total, editable, aviso } = Astro.props;
                     data-exito="Adjudicatario quitado."
                   >
                     <input type="hidden" name="adjudicacionId" value={a.id} />
-                    <button type="submit" class="btn-fantasma p-2" aria-label={`Quitar a ${a.proveedor}`}>
+                    <button type="submit" class="btn-fantasma p-2" aria-label={`Quitar a ${a.proveedor} de los adjudicatarios`}>
                       <Icono svg={quitar} tamano={16} />
                     </button>
                   </form>

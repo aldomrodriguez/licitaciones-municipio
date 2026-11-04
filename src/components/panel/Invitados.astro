@@ -100,13 +100,13 @@ const soloHistorica = lista.length === 0 && cantidadHistorica != null;
                     method="post"
                     data-accion="quitarInvitado"
                     data-titulo={`¿Quitar a ${i.proveedor} de los invitados?`}
-                    data-detalle={`Quedan ${lista.length - 1} invitados (mínimo ${minimo}).|Queda registrado en el historial.`}
+                    data-detalle={`${lista.length - 1 === 1 ? 'Queda 1 invitado' : `Quedan ${lista.length - 1} invitados`} (mínimo ${minimo}).|Queda registrado en el historial.`}
                     data-tono="peligro"
                     data-boton="Quitar invitado"
                     data-exito="Invitado quitado."
                   >
                     <input type="hidden" name="invitadoId" value={i.id} />
-                    <button type="submit" class="btn-fantasma p-2" aria-label={`Quitar a ${i.proveedor}`}>
+                    <button type="submit" class="btn-fantasma p-2" aria-label={`Quitar a ${i.proveedor} de los invitados`}>
                       <Icono svg={quitar} tamano={16} />
                     </button>
                   </form>
@@ -132,7 +132,7 @@ const soloHistorica = lista.length === 0 && cantidadHistorica != null;
           data-accion="agregarInvitado"
           data-diff
           data-titulo="¿Agregar el invitado?"
-          data-detalle={`Pasan a ser ${lista.length + 1} invitados (mínimo ${minimo}).`}
+          data-detalle={`${lista.length === 0 ? 'Es el primer invitado' : `Pasan a ser ${lista.length + 1} invitados`} (mínimo ${minimo}).`}
           data-boton="Agregar"
           data-exito="Invitado agregado."
         >

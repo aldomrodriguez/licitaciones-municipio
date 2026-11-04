@@ -42,7 +42,7 @@ export const ESTADOS = {
   },
   llamado: {
     nombre: 'Llamado abierto',
-    descripcion: 'Publicado. Se reciben ofertas hasta la fecha y hora de apertura.',
+    descripcion: 'Publicado. Se reciben ofertas hasta el día de la apertura.',
     tono: 'abierto',
     final: false,
     pideMotivo: false,

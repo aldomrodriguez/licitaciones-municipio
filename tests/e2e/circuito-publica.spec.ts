@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import type { Page } from '@playwright/test';
 import { expect, test } from './fixtures';
 import { ADMIN } from '../../playwright.config';
@@ -95,13 +96,17 @@ test('licitación pública: borrador → llamado → prórroga → evaluación �
   await expect(documentos).toContainText('Pliego LP7 2026');
   await expect(documentos).toContainText('Circular aclaratoria 1');
 
-  // Un archivo que no es PDF aunque se llame .pdf se rechaza.
-  await page.locator('[data-subida] [data-input]').setInputFiles('tests/fixtures/falso.pdf');
+  // Un archivo que no es PDF aunque se llame .pdf se rechaza, sin frenar a los válidos de la misma tanda.
+  await page.locator('[data-subida] [data-input]').setInputFiles([
+    { name: 'falso.pdf', mimeType: 'application/pdf', buffer: readFileSync('tests/fixtures/falso.pdf') },
+    { name: 'nota-interna.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4\n%%EOF\n') },
+  ]);
   await page.locator('[data-subir]').click();
   await confirmar(page);
-  await expect(page.locator('#dlg-error')).toBeVisible();
+  await expect(page.locator('#dlg-error')).toContainText('Se subió 1. No se pudo subir «Falso»');
   await page.locator('#dlg-confirmar [data-cancelar]').click();
-  await page.goto(urlPanel);
+  await expect(documentos).toContainText('Nota interna');
+  await expect(documentos).not.toContainText('Falso');
 
   // 4. Sin el mínimo legal de invitados no se abre el llamado.
   const estado = page.getByRole('region', { name: 'Estado actual' });
