@@ -149,14 +149,14 @@ const todoBloqueado = [...reglas.camposModalidad].every((c) => c === 'observacio
         {nota('lugarApertura') && <p id="n-lugar" class="ayuda">{nota('lugarApertura')}</p>}
       </div>
       <div data-solo="privada concurso" hidden={solo(['privada', 'concurso'])}>
-        <label for="invitados" class="etiqueta">Proveedores invitados</label>
-        <input id="invitados" name="invitados" type="number" min="0" inputmode="numeric" value={p?.invitados ?? ''} readonly={bloqueado('invitados')} aria-describedby={nota('invitados') ? 'n-invitados' : undefined} class={claseCampo('invitados')} data-etiqueta="Invitados" />
+        <label for="invitados" class="etiqueta">Cantidad de proveedores invitados</label>
+        <input id="invitados" name="invitados" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" value={p?.invitados ?? ''} placeholder={bloqueado('invitados') ? '—' : '0'} readonly={bloqueado('invitados')} aria-describedby={nota('invitados') ? 'n-invitados' : undefined} class={`${claseCampo('invitados')} max-w-28`} data-etiqueta="Proveedores invitados" data-entero />
         {nota('invitados') && <p id="n-invitados" class="ayuda">{nota('invitados')}</p>}
       </div>
       {/* En el alta no se muestra: recién se carga cuando se abren las ofertas. */}
       <div hidden={!edicion && bloqueado('cantidadOfertantes') ? true : undefined}>
-        <label for="cantidadOfertantes" class="etiqueta">Ofertas recibidas</label>
-        <input id="cantidadOfertantes" name="cantidadOfertantes" type="number" min="0" inputmode="numeric" value={p?.cantidadOfertantes ?? ''} readonly={bloqueado('cantidadOfertantes')} aria-describedby={nota('cantidadOfertantes') ? 'n-ofertas' : undefined} class={claseCampo('cantidadOfertantes')} data-etiqueta="Cantidad de ofertantes" />
+        <label for="cantidadOfertantes" class="etiqueta">Cantidad de ofertas recibidas</label>
+        <input id="cantidadOfertantes" name="cantidadOfertantes" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" value={p?.cantidadOfertantes ?? ''} placeholder={bloqueado('cantidadOfertantes') ? '—' : '0'} readonly={bloqueado('cantidadOfertantes')} aria-describedby={nota('cantidadOfertantes') ? 'n-ofertas' : undefined} class={`${claseCampo('cantidadOfertantes')} max-w-28`} data-etiqueta="Ofertas recibidas" data-entero />
         {nota('cantidadOfertantes') && <p id="n-ofertas" class="ayuda">{nota('cantidadOfertantes')}</p>}
       </div>
     </div>

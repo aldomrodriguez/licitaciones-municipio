@@ -69,8 +69,8 @@ export const CAMPOS: Record<CampoEditable, { etiqueta: string; formato: (v: Dato
   valorPliego: { etiqueta: 'Valor del pliego', formato: (v) => formatearMonto(v as number | null) },
   fechaApertura: { etiqueta: 'Fecha de apertura', formato: (v) => formatearFecha(v as Date | null, 'corta') },
   lugarApertura: { etiqueta: 'Lugar de apertura', formato: texto },
-  invitados: { etiqueta: 'Invitados', formato: texto },
-  cantidadOfertantes: { etiqueta: 'Cantidad de ofertantes', formato: texto },
+  invitados: { etiqueta: 'Proveedores invitados', formato: texto },
+  cantidadOfertantes: { etiqueta: 'Ofertas recibidas', formato: texto },
   observacionesPublicas: { etiqueta: 'Observaciones', formato: texto },
 };
 

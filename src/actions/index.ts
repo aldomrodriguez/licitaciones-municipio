@@ -97,12 +97,11 @@ const enteroOpcional = z
   .nullish()
   .transform((v, ctx) => {
     if (!v?.trim()) return null;
-    const n = Number(v);
-    if (!Number.isInteger(n) || n < 0) {
-      ctx.addIssue({ code: 'custom', message: 'Invitados y ofertantes tienen que ser números enteros.' });
+    if (!/^\d+$/.test(v.trim())) {
+      ctx.addIssue({ code: 'custom', message: 'Las cantidades de invitados y de ofertas van solo con números.' });
       return z.NEVER;
     }
-    return n;
+    return Number(v.trim());
   });
 
 const datosProcedimiento = z.object({
