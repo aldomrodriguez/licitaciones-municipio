@@ -1,6 +1,7 @@
 ---
 import type { Procedimiento } from '../../lib/db/schema';
 import { ESTADOS, consecuencias, reglasEtapa, transicionesPosibles, validarTransicion, type Estado, type Rol } from '../../lib/estados';
+import { excesoPresupuesto } from '../../lib/formato';
 import EstadoBadge from '../ui/EstadoBadge.astro';
 import Recorrido from '../publico/Recorrido.astro';
 import Icono from '../ui/Icono.astro';
@@ -13,8 +14,10 @@ interface Props {
   cantidadAdjudicaciones: number;
   cantidadInvitados: number;
   cantidadDocumentosAdjudicacion: number;
+  totalAdjudicado: number;
 }
-const { p, estado, rol, cantidadAdjudicaciones, cantidadInvitados, cantidadDocumentosAdjudicacion } = Astro.props;
+const { p, estado, rol, cantidadAdjudicaciones, cantidadInvitados, cantidadDocumentosAdjudicacion, totalAdjudicado } = Astro.props;
+const exceso = excesoPresupuesto(totalAdjudicado, p.presupuestoOficial);
 const datos = { tipo: p.tipo, estado, fechaApertura: p.fechaApertura, cantidadAdjudicaciones, cantidadInvitados, cantidadDocumentosAdjudicacion };
 const { guia } = reglasEtapa(p.tipo, estado, rol);
 const opciones = transicionesPosibles(p.tipo, estado, rol);
@@ -55,7 +58,7 @@ const def = ESTADOS[estado];
                   method="post"
                   data-accion="cambiarEstado"
                   data-titulo={t.correccion ? `¿Reabrir como «${destino.nombre}»?` : `¿Pasar a «${destino.nombre}»?`}
-                  data-detalle={[`Estado actual: ${def.nombre}. Nuevo estado: ${destino.nombre}.`, ...consecuencias(datos, t.destino, t.correccion)].join('|')}
+                  data-detalle={[`Estado actual: ${def.nombre}. Nuevo estado: ${destino.nombre}.`, ...consecuencias(datos, t.destino, t.correccion), ...(t.destino === 'adjudicada' && exceso ? [`Atención: ${exceso}`] : [])].join('|')}
                   data-tono={peligro ? 'peligro' : undefined}
                   data-motivo={destino.pideMotivo || t.correccion ? 'requerido' : 'opcional'}
                   data-boton={t.correccion ? 'Reabrir' : `Pasar a ${destino.nombre}`}

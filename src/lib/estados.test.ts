@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { categoriasNoDisponibles, reglasEtapa, transicionesPosibles, validarTransicion, type DatosValidacion } from './estados';
+import { categoriasNoDisponibles, consecuencias, reglasEtapa, transicionesPosibles, validarTransicion, type DatosValidacion } from './estados';
 
 const futuro = new Date('2099-01-01T13:00:00Z');
 const base: DatosValidacion = { tipo: 'publica', estado: 'borrador', fechaApertura: futuro, cantidadAdjudicaciones: 0, cantidadInvitados: 5, cantidadDocumentosAdjudicacion: 0 };
@@ -28,7 +28,7 @@ describe('transiciones', () => {
     const d = { ...base, tipo: 'privada' as const, cantidadAdjudicaciones: 1, cantidadDocumentosAdjudicacion: 1 };
     expect(validarTransicion(d, 'adjudicada', 'compras', null)).toEqual([]);
     expect(validarTransicion(d, 'desierta', 'compras', 'No se presentaron ofertas')).toEqual([
-      'Hay una orden de compra o ampliación cargada: sin adjudicación no corresponde. Quitala antes de cerrar.',
+      'Hay un decreto de adjudicación, una orden de compra o una ampliación cargados: sin adjudicación no corresponden. Quitalos antes de cerrar.',
     ]);
     expect(validarTransicion({ ...d, estado: 'borrador' }, 'anulada', 'compras', 'Se dejó sin efecto')).toHaveLength(1);
   });
@@ -134,11 +134,22 @@ describe('qué se puede cargar en cada etapa', () => {
     expect(reglasEtapa('publica', 'borrador', 'compras').camposModalidad.has('lugarApertura')).toBe(true);
   });
 
+  it('al reabrir una adjudicada avisa que los adjudicatarios dejan de verse', () => {
+    const d = { ...base, estado: 'adjudicada' as const, cantidadAdjudicaciones: 2 };
+    expect(consecuencias(d, 'evaluacion', true).join(' ')).toContain('el sitio no muestra los adjudicatarios');
+    expect(consecuencias({ ...d, cantidadAdjudicaciones: 0 }, 'evaluacion', true).join(' ')).not.toContain('adjudicatarios');
+  });
+
   it('los documentos siguen el orden del procedimiento', () => {
     expect(categoriasNoDisponibles('publica', 'borrador', 'compras')).toContain('Decreto de adjudicación');
     expect(categoriasNoDisponibles('publica', 'borrador', 'compras')).toContain('Acta de apertura');
     expect(reglasEtapa('publica', 'llamado', 'compras').categorias).toContain('Prórroga');
     expect(reglasEtapa('publica', 'evaluacion', 'compras').categorias).toContain('Acta de apertura');
+    // Pedido de Compras: el decreto de adjudicación recién con la licitación adjudicada.
+    expect(reglasEtapa('publica', 'evaluacion', 'compras').categorias).not.toContain('Decreto de adjudicación');
+    expect(reglasEtapa('concurso', 'tramite', 'compras').categorias).not.toContain('Decreto de adjudicación');
+    expect(reglasEtapa('publica', 'adjudicada', 'compras').categorias).toContain('Decreto de adjudicación');
+    expect(reglasEtapa('publica', 'desierta', 'compras').categorias).not.toContain('Decreto de adjudicación');
     expect(reglasEtapa('publica', 'adjudicada', 'compras').categorias).toContain('Orden de compra / contrato');
     expect(reglasEtapa('publica', 'desierta', 'compras').categorias).not.toContain('Orden de compra / contrato');
     // Lo de etapas anteriores se puede seguir subiendo (publicación a destiempo).

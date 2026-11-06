@@ -13,8 +13,10 @@
  *   data-exito      aviso después de guardar
  *   data-ir         a dónde ir después ({id} se reemplaza por el id devuelto); si falta, recarga
  *   data-diff       formulario de edición: la confirmación muestra los campos cambiados
+ *   data-total, data-presupuesto  (centavos) avisa si el total más el campo «monto» supera el presupuesto
  */
 import { actions, isInputError, type ActionError } from 'astro:actions';
+import { excesoPresupuesto, parsearMonto } from '../lib/formato';
 import { avisar, avisarDespues, confirmar, mostrarAvisoPendiente } from './confirmar';
 
 const ACCIONES = {
@@ -178,6 +180,12 @@ async function enviar(form: HTMLFormElement, e: SubmitEvent) {
   const detalle = (d.detalle ?? '').split('|').filter(Boolean);
   if (d.diff !== undefined && d.prorroga === 'si' && lista.some((c) => c.nombre === 'fechaApertura')) {
     detalle.push('Cambiaste la fecha de apertura de un llamado publicado: se registra como prórroga y se muestra en el sitio.');
+  }
+
+  if (d.presupuesto && d.total !== undefined) {
+    const monto = parsearMonto(new FormData(form).get('monto')?.toString());
+    const exceso = monto && Number.isFinite(monto) ? excesoPresupuesto(Number(d.total) + monto, Number(d.presupuesto)) : null;
+    if (exceso) detalle.push(`Atención: ${exceso}`);
   }
 
   let resultado: Awaited<ReturnType<(typeof ACCIONES)[NombreAccion]>>['data'] | undefined;

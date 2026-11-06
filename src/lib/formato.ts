@@ -53,6 +53,17 @@ export function sumarMontos(montos: readonly number[]): number {
   return montos.reduce((a, b) => a + b, 0);
 }
 
+/**
+ * Aviso si el total adjudicado supera el presupuesto oficial (pedido de Compras: avisar, no bloquear).
+ * Null si no lo supera o si no hay presupuesto cargado.
+ */
+export function excesoPresupuesto(total: number, presupuesto: number | null | undefined): string | null {
+  if (!presupuesto || presupuesto <= 0 || total <= presupuesto) return null;
+  const porcentaje = ((total - presupuesto) / presupuesto) * 100;
+  const cuanto = porcentaje < 1 ? 'menos del 1 %' : `${Math.round(porcentaje).toLocaleString('es-AR')} %`;
+  return `El total adjudicado (${formatearMonto(total)}) supera el presupuesto oficial (${formatearMonto(presupuesto)}) en ${cuanto}. Revisá que el monto esté bien.`;
+}
+
 const fechaLarga = new Intl.DateTimeFormat('es-AR', { timeZone: ZONA, day: 'numeric', month: 'long', year: 'numeric' });
 const fechaCorta = new Intl.DateTimeFormat('es-AR', { timeZone: ZONA, day: '2-digit', month: '2-digit', year: 'numeric' });
 const hora = new Intl.DateTimeFormat('es-AR', { timeZone: ZONA, hour: '2-digit', minute: '2-digit', hour12: false });

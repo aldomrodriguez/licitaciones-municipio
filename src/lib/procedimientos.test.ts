@@ -146,6 +146,14 @@ describe('ciclo completo de una licitación pública', () => {
     expect(() => agregarAdjudicacion(db, admin, id, germano)).toThrow(/reabrirlo/);
   });
 
+  it('un proveedor no se carga dos veces como adjudicatario', () => {
+    const id = crearListo(publica({ tipo: 'privada' }));
+    agregarAdjudicacion(db, compras, id, { proveedor: 'Germano S.R.L.', cuit: '20123456786', monto: 100 });
+    expect(() => agregarAdjudicacion(db, compras, id, { proveedor: 'Otro nombre', cuit: '20-12345678-6', monto: 50 })).toThrow(/ya es adjudicatario/);
+    expect(() => agregarAdjudicacion(db, compras, id, { proveedor: 'germano s.r.l.', cuit: '30712345671', monto: 50 })).toThrow(/ya es adjudicatario/);
+    expect(() => agregarAdjudicacion(db, compras, id, { proveedor: 'Oficina Total S.A.', cuit: '30712345671', monto: 50 })).not.toThrow();
+  });
+
   it('en el llamado no se cargan adjudicatarios ni ofertas', () => {
     const id = crearListo(publica());
     cambiarEstado(db, compras, id, 'llamado', null);
@@ -265,7 +273,7 @@ describe('listados', () => {
     const b = crearListo(publica({ tipo: 'concurso', numero: 2 }));
     cambiarEstado(db, compras, a, 'tramite', null);
     agregarAdjudicacion(db, compras, a, { proveedor: 'Uno', cuit: '20123456786', monto: 100 });
-    agregarAdjudicacion(db, compras, a, { proveedor: 'Dos', cuit: '20123456786', monto: 50 });
+    agregarAdjudicacion(db, compras, a, { proveedor: 'Dos', cuit: '30712345671', monto: 50 });
     registrarDocumento(db, compras, b, {
       titulo: 'X', categoria: 'Otro', archivo: 'x.pdf', nombreOriginal: 'x.pdf', mime: 'application/pdf', tamano: 1, publico: true,
     });

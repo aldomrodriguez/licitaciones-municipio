@@ -325,6 +325,16 @@ export function agregarAdjudicacion(db: Db, actor: Actor, procedimientoId: numbe
   if (errores.length) throw new ErrorNegocio(errores);
   return db.transaction((tx) => {
     exigirAdjudicatarios(obtenerActivo(tx, procedimientoId), actor);
+    // Pedido de Compras: cada proveedor aparece una sola vez, con el total que se le adjudicó.
+    const proveedor = datos.proveedor.trim();
+    const cuit = formatearCuit(datos.cuit);
+    const cargados = tx.select().from(adjudicaciones).where(eq(adjudicaciones.procedimientoId, procedimientoId)).all();
+    const repetido = cargados.find((a) => a.cuit === cuit || a.proveedor.toLocaleLowerCase('es') === proveedor.toLocaleLowerCase('es'));
+    if (repetido) {
+      throw new ErrorNegocio([
+        `${repetido.proveedor} ya es adjudicatario (${formatearMonto(repetido.monto)}). Si ganó varios renglones, cargalo una sola vez con el monto total: quitalo y volvé a agregarlo.`,
+      ]);
+    }
     const orden =
       tx
         .select({ m: sql<number>`coalesce(max(${adjudicaciones.orden}), -1)` })
@@ -333,12 +343,12 @@ export function agregarAdjudicacion(db: Db, actor: Actor, procedimientoId: numbe
         .get()?.m ?? -1;
     const { id } = tx
       .insert(adjudicaciones)
-      .values({ procedimientoId, proveedor: datos.proveedor.trim(), cuit: formatearCuit(datos.cuit), monto: datos.monto, orden: orden + 1 })
+      .values({ procedimientoId, proveedor, cuit, monto: datos.monto, orden: orden + 1 })
       .returning({ id: adjudicaciones.id })
       .get();
     registrar(tx, actor, procedimientoId, {
       accion: 'adjudicacion_agregada',
-      valorNuevo: `${datos.proveedor.trim()} (${formatearMonto(datos.monto)})`,
+      valorNuevo: `${proveedor} (${formatearMonto(datos.monto)})`,
     });
     tocar(tx, procedimientoId);
     return id;

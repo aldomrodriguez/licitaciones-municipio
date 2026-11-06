@@ -199,7 +199,7 @@ export function validarTransicion(
     errores.push('Para adjudicar hay que cargar al menos un adjudicatario con su monto.');
   }
   if (ESTADOS[destino].final && destino !== 'adjudicada' && datos.cantidadDocumentosAdjudicacion > 0) {
-    errores.push('Hay una orden de compra o ampliación cargada: sin adjudicación no corresponde. Quitala antes de cerrar.');
+    errores.push('Hay un decreto de adjudicación, una orden de compra o una ampliación cargados: sin adjudicación no corresponden. Quitalos antes de cerrar.');
   }
   return errores;
 }
@@ -241,6 +241,9 @@ export function consecuencias(
   }
   if (correccion) {
     out.push(`Se reabre como «${ESTADOS[destino].nombre}». Queda registrado en el historial.`);
+  }
+  if (correccion && actual === 'adjudicada' && datos.cantidadAdjudicaciones > 0) {
+    out.push('Mientras esté reabierta, el sitio no muestra los adjudicatarios. Vuelven a publicarse al adjudicar de nuevo.');
   }
   if (tipo === 'publica' && destino === 'evaluacion' && !correccion) {
     out.push('A partir de acá se cargan las ofertas recibidas, el acta de apertura y los adjudicatarios.');
@@ -321,15 +324,15 @@ const DOCUMENTO_DESDE: Record<Categoria, Etapa> = {
   'Prórroga': 1,
   'Acta de apertura': 2,
   'Dictamen / preadjudicación': 2,
-  'Decreto de adjudicación': 2,
+  'Decreto de adjudicación': 3,
   'Orden de compra / contrato': 3,
   'Ampliación': 3,
   'Expediente': 2,
   'Imagen': 0,
   'Otro': 0,
 };
-/** Documentos que solo existen si hubo adjudicación. */
-export const SOLO_ADJUDICADA: readonly Categoria[] = ['Orden de compra / contrato', 'Ampliación'];
+/** Documentos que solo existen si hubo adjudicación (pedido de Compras: el decreto también). */
+export const SOLO_ADJUDICADA: readonly Categoria[] = ['Decreto de adjudicación', 'Orden de compra / contrato', 'Ampliación'];
 
 export interface ReglasEtapa {
   /** Campos editables ahora. */
@@ -376,7 +379,7 @@ export function reglasEtapa(tipo: Tipo, estado: Estado, rol: Rol): ReglasEtapa {
       return CAMPOS_POR_ETAPA[c].some((e) => etapas.includes(e));
     }),
   );
-  // Una privada se carga ya terminada: en borrador también va la orden de compra.
+  // Una privada se carga ya terminada: en borrador también van el decreto y la orden de compra.
   const cargaFinal = estado === 'borrador' && CARGA_AL_FINAL.includes(tipo);
   const categorias = CATEGORIAS.filter((c) =>
     SOLO_ADJUDICADA.includes(c) ? estado === 'adjudicada' || cargaFinal : DOCUMENTO_DESDE[c] <= ultima,
