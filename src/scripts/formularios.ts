@@ -215,11 +215,12 @@ async function enviar(form: HTMLFormElement, e: SubmitEvent) {
     await confirmar({
       titulo: 'Contraseña generada',
       detalle: [
-        'Pasásela a la persona por un canal seguro. No se vuelve a mostrar: anotala ahora.',
+        'Pasásela a la persona por un canal seguro. No se vuelve a mostrar: copiala o anotala ahora.',
         'Es provisoria: al entrar, el sistema le pide que elija una propia.',
       ],
-      lista: [resultado.clave],
-      boton: 'Ya la anoté',
+      copiar: resultado.clave,
+      aviso: true,
+      boton: 'Listo',
     });
   }
   if (d.exito) avisarDespues(d.exito);

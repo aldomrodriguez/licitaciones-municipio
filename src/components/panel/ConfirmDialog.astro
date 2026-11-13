@@ -5,6 +5,8 @@
  */
 import alerta from '@tabler/icons/outline/alert-triangle.svg?raw';
 import info from '@tabler/icons/outline/info-circle.svg?raw';
+import copiar from '@tabler/icons/outline/copy.svg?raw';
+import tilde from '@tabler/icons/outline/check.svg?raw';
 import Icono from '../ui/Icono.astro';
 ---
 
@@ -27,6 +29,16 @@ import Icono from '../ui/Icono.astro';
     </div>
 
     <ul id="dlg-lista" class="cifras mt-5 max-h-[40vh] space-y-2 overflow-auto rounded-lg border border-linea bg-papel p-3 text-sm" hidden></ul>
+
+    <div id="dlg-copiar" class="mt-5 flex items-stretch gap-2" hidden>
+      <output id="dlg-copiar-texto" class="flex min-w-0 flex-1 items-center rounded-lg border border-linea bg-papel px-4 py-3 font-mono text-lg tracking-wide break-all select-all"></output>
+      <button type="button" id="dlg-copiar-boton" class="btn-secundario shrink-0">
+        <span data-copiar="listo"><Icono svg={copiar} tamano={18} /></span>
+        <span data-copiar="hecho" class="text-exito" hidden><Icono svg={tilde} tamano={18} /></span>
+        <span id="dlg-copiar-etiqueta">Copiar</span>
+      </button>
+    </div>
+    <p id="dlg-copiar-estado" class="sr-only" aria-live="polite"></p>
 
     <div id="dlg-motivo" class="mt-5" hidden>
       <label for="dlg-motivo-texto" class="etiqueta">Motivo <span id="dlg-motivo-req" class="font-normal text-gris"></span></label>

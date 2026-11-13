@@ -16,6 +16,10 @@ export interface OpcionesConfirmar {
   boton?: string;
   motivo?: 'requerido' | 'opcional';
   escribir?: string;
+  /** Texto destacado con botón «Copiar» (ej. una contraseña generada). */
+  copiar?: string;
+  /** Solo informa: sin botón «Cancelar». */
+  aviso?: boolean;
   ejecutar?: (extra: { motivo: string; escrito: string }) => Promise<string | null>;
 }
 
@@ -37,6 +41,8 @@ export function confirmar(o: OpcionesConfirmar): Promise<boolean> {
   const escribir = $<HTMLInputElement>('dlg-escribir-texto');
   const lista = $<HTMLUListElement>('dlg-lista');
   const detalle = $('dlg-detalle');
+  const copiarCaja = $('dlg-copiar');
+  const copiarBoton = $<HTMLButtonElement>('dlg-copiar-boton');
   const previo = document.activeElement as HTMLElement | null;
   const peligro = o.tono === 'peligro';
 
@@ -66,6 +72,10 @@ export function confirmar(o: OpcionesConfirmar): Promise<boolean> {
   escribirCaja.hidden = !o.escribir;
   escribir.value = '';
   texto($('dlg-escribir-clave'), o.escribir ?? '');
+  copiarCaja.hidden = o.copiar === undefined;
+  texto($('dlg-copiar-texto'), o.copiar ?? '');
+  marcarCopiado(false);
+  cancelar.hidden = Boolean(o.aviso);
   error.hidden = true;
   ok.textContent = o.boton ?? 'Confirmar';
   ok.className = peligro ? 'btn-peligro' : 'btn-primario';
@@ -84,6 +94,7 @@ export function confirmar(o: OpcionesConfirmar): Promise<boolean> {
       cancelar.removeEventListener('click', alCancelar);
       dlg.removeEventListener('cancel', alEsc);
       escribir.removeEventListener('input', alEscribir);
+      copiarBoton.removeEventListener('click', alCopiar);
       dlg.close();
       previo?.focus();
       resolver(resultado);
@@ -128,14 +139,32 @@ export function confirmar(o: OpcionesConfirmar): Promise<boolean> {
       error.textContent = m;
       error.hidden = false;
     };
+    const alCopiar = async () => {
+      try {
+        await navigator.clipboard.writeText(o.copiar ?? '');
+        marcarCopiado(true);
+      } catch {
+        // Sin acceso al portapapeles: se selecciona el texto para copiarlo a mano.
+        getSelection()?.selectAllChildren($('dlg-copiar-texto'));
+        mostrarError('No se pudo copiar automáticamente. El texto quedó seleccionado: copialo con Ctrl+C (⌘+C en Mac).');
+      }
+    };
 
     ok.addEventListener('click', alOk);
     cancelar.addEventListener('click', alCancelar);
     dlg.addEventListener('cancel', alEsc);
     escribir.addEventListener('input', alEscribir);
+    copiarBoton.addEventListener('click', alCopiar);
     dlg.showModal();
-    (o.motivo ? motivo : o.escribir ? escribir : cancelar).focus();
+    (o.motivo ? motivo : o.escribir ? escribir : o.copiar !== undefined ? copiarBoton : o.aviso ? ok : cancelar).focus();
   });
+}
+
+function marcarCopiado(copiado: boolean) {
+  document.querySelector<HTMLElement>('[data-copiar="listo"]')!.hidden = copiado;
+  document.querySelector<HTMLElement>('[data-copiar="hecho"]')!.hidden = !copiado;
+  texto($('dlg-copiar-etiqueta'), copiado ? 'Copiada' : 'Copiar');
+  texto($('dlg-copiar-estado'), copiado ? 'Copiada al portapapeles.' : '');
 }
 
 // ─── Avisos ─────────────────────────────────────────────────────────────────
