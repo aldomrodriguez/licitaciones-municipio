@@ -30,7 +30,7 @@ if (p.presupuestoOficial != null) datos.push(['Presupuesto oficial', formatearMo
 if (p.valorPliego != null) datos.push(['Valor del pliego', formatearMonto(p.valorPliego)]);
 if (p.fechaApertura) datos.push(['Fecha de apertura', formatearFecha(p.fechaApertura)]);
 if (p.lugarApertura) datos.push(['Lugar de apertura', p.lugarApertura]);
-if (p.invitados != null) datos.push(['Proveedores invitados', String(p.invitados)]);
+if (d.cantidadInvitados > 0) datos.push(['Proveedores invitados', String(d.cantidadInvitados)]);
 if (p.cantidadOfertantes != null) datos.push(['Ofertas recibidas', String(p.cantidadOfertantes)]);
 if (p.areaSolicitante) datos.push(['Área solicitante', p.areaSolicitante]);
 

@@ -5,14 +5,12 @@
  */
 import { ActionError, defineAction, type ActionAPIContext } from 'astro:actions';
 import { z } from 'astro/zod';
-import { eq } from 'drizzle-orm';
-import { randomBytes } from 'node:crypto';
 import { db } from '../lib/db';
-import { usuarios } from '../lib/db/schema';
 import { esEstado, esTipo } from '../lib/estados';
 import { desdeFechaInput, parsearMonto } from '../lib/formato';
 import { borrarArchivo } from '../lib/archivos';
-import { cerrarSesionesDe, hashear, validarClave } from '../lib/auth';
+import { COOKIE_SESION } from '../lib/auth';
+import * as U from '../lib/usuarios';
 import * as P from '../lib/procedimientos';
 import * as C from '../lib/configuracion';
 import { derivarColores } from '../lib/color';
@@ -53,6 +51,16 @@ const json = z.string().transform((v, c) => {
   }
 });
 
+/** Errores de la gestión de usuarios, como mensaje para el diálogo. */
+async function usuario<T>(fn: () => Promise<T>, codigo: 'BAD_REQUEST' | 'CONFLICT' = 'BAD_REQUEST'): Promise<T> {
+  try {
+    return await fn();
+  } catch (e) {
+    if (e instanceof U.ErrorUsuario) throw new ActionError({ code: codigo, message: e.message });
+    throw e;
+  }
+}
+
 function configurar<T>(fn: () => T): T {
   try {
     return fn();
@@ -89,12 +97,11 @@ const enteroOpcional = z
   .nullish()
   .transform((v, ctx) => {
     if (!v?.trim()) return null;
-    const n = Number(v);
-    if (!Number.isInteger(n) || n < 0) {
-      ctx.addIssue({ code: 'custom', message: 'Invitados y ofertantes tienen que ser números enteros.' });
+    if (!/^\d+$/.test(v.trim())) {
+      ctx.addIssue({ code: 'custom', message: 'La cantidad de ofertas recibidas va solo con números.' });
       return z.NEVER;
     }
-    return n;
+    return Number(v.trim());
   });
 
 const datosProcedimiento = z.object({
@@ -118,7 +125,6 @@ const datosProcedimiento = z.object({
       return d;
     }),
   lugarApertura: textoOpcional,
-  invitados: enteroOpcional,
   cantidadOfertantes: enteroOpcional,
   observacionesPublicas: textoOpcional,
 });
@@ -167,6 +173,36 @@ export const server = {
     handler: ({ id: pid, proveedor, cuit, monto: m }, ctx) => {
       if (m == null) throw new ActionError({ code: 'BAD_REQUEST', message: 'Indicá el monto adjudicado.' });
       return { id: ejecutar(() => P.agregarAdjudicacion(db(), actor(ctx), pid, { proveedor, cuit, monto: m })) };
+    },
+  }),
+
+  agregarInvitado: defineAction({
+    accept: 'form',
+    input: z.object({
+      id,
+      proveedor: z.string().trim().min(2, 'Indicá el proveedor.').max(300),
+      cuit: z.string().trim().max(20).nullish(),
+    }),
+    handler: ({ id: pid, proveedor, cuit }, ctx) => ({
+      id: ejecutar(() => P.agregarInvitado(db(), actor(ctx), pid, { proveedor, cuit: cuit ?? null })),
+    }),
+  }),
+
+  quitarInvitado: defineAction({
+    accept: 'form',
+    input: z.object({ invitadoId: id }),
+    handler: ({ invitadoId }, ctx) => {
+      ejecutar(() => P.quitarInvitado(db(), actor(ctx), invitadoId));
+      return { ok: true };
+    },
+  }),
+
+  marcarPliegoComprado: defineAction({
+    accept: 'form',
+    input: z.object({ invitadoId: id, compro: z.enum(['si', 'no']) }),
+    handler: ({ invitadoId, compro }, ctx) => {
+      ejecutar(() => P.marcarPliegoComprado(db(), actor(ctx), invitadoId, compro === 'si'));
+      return { ok: true };
     },
   }),
 
@@ -258,24 +294,18 @@ export const server = {
       email: z.email('El email no es válido.').transform((v) => v.trim().toLowerCase()),
       rol: z.enum(['admin', 'compras']),
     }),
-    handler: async ({ nombre, email, rol }, ctx) => {
-      soloAdmin(ctx);
-      const existe = db().select({ id: usuarios.id }).from(usuarios).where(eq(usuarios.email, email)).get();
-      if (existe) throw new ActionError({ code: 'CONFLICT', message: `Ya existe un usuario con ${email}.` });
-      const clave = randomBytes(9).toString('base64url');
-      db().insert(usuarios).values({ nombre, email, rol, hash: await hashear(clave) }).run();
-      return { clave };
+    handler: async (datos, ctx) => {
+      const a = soloAdmin(ctx);
+      return { clave: await usuario(() => U.crearUsuario(db(), { id: a.id!, nombre: a.nombre }, datos), 'CONFLICT') };
     },
   }),
 
   cambiarActivoUsuario: defineAction({
     accept: 'form',
     input: z.object({ usuarioId: id, activo: z.enum(['si', 'no']) }),
-    handler: ({ usuarioId, activo }, ctx) => {
+    handler: async ({ usuarioId, activo }, ctx) => {
       const a = soloAdmin(ctx);
-      if (usuarioId === a.id) throw new ActionError({ code: 'BAD_REQUEST', message: 'No podés darte de baja a vos mismo.' });
-      db().update(usuarios).set({ activo: activo === 'si' }).where(eq(usuarios.id, usuarioId)).run();
-      if (activo === 'no') cerrarSesionesDe(db(), usuarioId);
+      await usuario(async () => U.cambiarActivo(db(), { id: a.id!, nombre: a.nombre }, usuarioId, activo === 'si'));
       return { ok: true };
     },
   }),
@@ -284,22 +314,17 @@ export const server = {
     accept: 'form',
     input: z.object({ usuarioId: id }),
     handler: async ({ usuarioId }, ctx) => {
-      soloAdmin(ctx);
-      const clave = randomBytes(9).toString('base64url');
-      db().update(usuarios).set({ hash: await hashear(clave) }).where(eq(usuarios.id, usuarioId)).run();
-      cerrarSesionesDe(db(), usuarioId);
-      return { clave };
+      const a = soloAdmin(ctx);
+      return { clave: await usuario(() => U.resetearClave(db(), { id: a.id!, nombre: a.nombre }, usuarioId)) };
     },
   }),
 
   cambiarMiClave: defineAction({
     accept: 'form',
-    input: z.object({ nueva: z.string(), repetir: z.string() }),
-    handler: async ({ nueva, repetir }, ctx) => {
+    input: z.object({ actual: z.string(), nueva: z.string(), repetir: z.string() }),
+    handler: async (datos, ctx) => {
       const a = actor(ctx);
-      const error = validarClave(nueva) ?? (nueva !== repetir ? 'Las contraseñas no coinciden.' : null);
-      if (error) throw new ActionError({ code: 'BAD_REQUEST', message: error });
-      db().update(usuarios).set({ hash: await hashear(nueva) }).where(eq(usuarios.id, a.id!)).run();
+      await usuario(() => U.cambiarClavePropia(db(), a.id!, datos, ctx.cookies.get(COOKIE_SESION)?.value));
       return { ok: true };
     },
   }),

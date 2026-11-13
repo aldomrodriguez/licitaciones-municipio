@@ -1,6 +1,6 @@
 ---
 import type { Adjudicacion } from '../../lib/db/schema';
-import { formatearMonto } from '../../lib/formato';
+import { excesoPresupuesto, formatearMonto } from '../../lib/formato';
 import Icono from '../ui/Icono.astro';
 import quitar from '@tabler/icons/outline/x.svg?raw';
 
@@ -8,11 +8,14 @@ interface Props {
   procedimientoId: number;
   lista: Adjudicacion[];
   total: number;
+  /** Presupuesto oficial en centavos, para avisar si se lo supera. */
+  presupuesto: number | null;
   editable: boolean;
   /** Explicación de por qué no se pueden cargar ahora (si no es editable). */
   aviso?: string | undefined;
 }
-const { procedimientoId, lista, total, editable, aviso } = Astro.props;
+const { procedimientoId, lista, total, presupuesto, editable, aviso } = Astro.props;
+const exceso = excesoPresupuesto(total, presupuesto);
 ---
 
 <section aria-labelledby="t-adj" class="rounded-lg border border-linea bg-white p-5 sm:p-6">
@@ -49,7 +52,7 @@ const { procedimientoId, lista, total, editable, aviso } = Astro.props;
                     data-exito="Adjudicatario quitado."
                   >
                     <input type="hidden" name="adjudicacionId" value={a.id} />
-                    <button type="submit" class="btn-fantasma p-2" aria-label={`Quitar a ${a.proveedor}`}>
+                    <button type="submit" class="btn-fantasma p-2" aria-label={`Quitar a ${a.proveedor} de los adjudicatarios`}>
                       <Icono svg={quitar} tamano={16} />
                     </button>
                   </form>
@@ -69,6 +72,7 @@ const { procedimientoId, lista, total, editable, aviso } = Astro.props;
     )
   }
 
+  {exceso && <p class="mt-4 rounded-md bg-alerta-fondo px-3 py-2 text-sm font-semibold text-alerta" role="status">{exceso}</p>}
   {aviso && <p class="mt-4 text-sm text-gris">{aviso}</p>}
   {editable && lista.length > 0 && <p class="mt-3 text-[13px] text-gris">Se publican recién cuando el procedimiento pasa a «Adjudicada».</p>}
 
@@ -85,6 +89,8 @@ const { procedimientoId, lista, total, editable, aviso } = Astro.props;
           data-detalle={`Total adjudicado actual: ${formatearMonto(total)}. Se suma el monto de este proveedor.`}
           data-boton="Agregar"
           data-exito="Adjudicatario agregado."
+          data-total={total}
+          data-presupuesto={presupuesto ?? ''}
         >
           <input type="hidden" name="id" value={procedimientoId} />
           <div>

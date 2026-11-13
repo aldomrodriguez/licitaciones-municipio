@@ -318,7 +318,7 @@ function mejorarFecha(input: HTMLInputElement) {
 
   const pintarValor = () => {
     const d = desdeIso(input.value);
-    valor.textContent = d ? textoFecha(d) : 'Elegir fecha';
+    valor.textContent = d ? textoFecha(d) : soloLectura ? 'Sin informar' : 'Elegir fecha';
     valor.classList.toggle('text-gris', !d);
   };
   pintarValor();
@@ -509,4 +509,15 @@ export function mejorarControles(raiz: ParentNode = document) {
   raiz.querySelectorAll<HTMLSelectElement>('select').forEach(mejorarSelect);
   raiz.querySelectorAll<HTMLInputElement>('input[data-fecha]').forEach(mejorarFecha);
   raiz.querySelectorAll<HTMLInputElement>('input[data-cuit]').forEach(mejorarCuit);
+  raiz.querySelectorAll<HTMLInputElement>('input[data-entero]').forEach(soloDigitos);
+}
+
+/** Cantidades: se descarta todo lo que no sea un dígito, también al pegar. */
+function soloDigitos(input: HTMLInputElement) {
+  if (input.dataset.mejorado) return;
+  input.dataset.mejorado = 'si';
+  input.addEventListener('input', () => {
+    const limpio = input.value.replace(/\D/g, '');
+    if (limpio !== input.value) input.value = limpio;
+  });
 }

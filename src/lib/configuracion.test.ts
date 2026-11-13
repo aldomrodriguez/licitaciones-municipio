@@ -20,7 +20,7 @@ beforeEach(() => {
 });
 
 describe('esHrefSeguro', () => {
-  it.each(['https://municipiodelobos.gob.ar/', 'http://localhost:4321/x', 'mailto:compras@lobos.gob.ar', 'tel:+542227431450'])('acepta %s', (h) => {
+  it.each(['https://municipiodelobos.gob.ar/', 'http://localhost:4321/x', 'mailto:compras@municipio.gob.ar', 'tel:+542227431450'])('acepta %s', (h) => {
     expect(esHrefSeguro(h)).toBe(true);
   });
   it.each(['javascript:alert(1)', 'JaVaScRiPt:alert(1)', 'data:text/html,<script>', 'vbscript:x', '/relativo', 'www.sin-protocolo.com', 'https://sinpunto', ''])('rechaza %s', (h) => {

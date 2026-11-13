@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { aFechaInput, desdeFechaInput, diaLobos, formatearMonto, montoAInput, parsearMonto } from './formato';
+import { aFechaInput, desdeFechaInput, diaLobos, excesoPresupuesto, formatearMonto, montoAInput, parsearMonto } from './formato';
 
 describe('parsearMonto', () => {
   it.each([
@@ -45,5 +45,17 @@ describe('formatos', () => {
   it('el día en Lobos no se corre por la zona horaria', () => {
     expect(diaLobos(new Date('2026-10-15T02:30:00Z'))).toBe('2026-10-14');
     expect(diaLobos(new Date('2026-10-15T03:00:00Z'))).toBe('2026-10-15');
+  });
+});
+
+describe('excesoPresupuesto', () => {
+  it('avisa cuánto se pasa del presupuesto oficial', () => {
+    expect(excesoPresupuesto(1_500_000_000, 450_000_000)).toMatch(/supera el presupuesto oficial .* en 233 %/);
+    expect(excesoPresupuesto(450_100_000, 450_000_000)).toContain('menos del 1 %');
+  });
+  it('no avisa si no lo supera o no hay presupuesto', () => {
+    expect(excesoPresupuesto(450_000_000, 450_000_000)).toBeNull();
+    expect(excesoPresupuesto(100, null)).toBeNull();
+    expect(excesoPresupuesto(100, 0)).toBeNull();
   });
 });

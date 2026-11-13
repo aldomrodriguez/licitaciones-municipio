@@ -6,7 +6,7 @@ import { defineConfig, devices } from '@playwright/test';
  */
 const PUERTO = 4600;
 export const URL_BASE = `http://localhost:${PUERTO}`;
-export const ADMIN = { email: 'e2e@lobos.gob.ar', clave: 'clave-e2e-segura-123' };
+export const ADMIN = { email: 'e2e@municipio.gob.ar', clave: 'clave-e2e-segura-123' };
 
 export default defineConfig({
   testDir: 'tests/e2e',

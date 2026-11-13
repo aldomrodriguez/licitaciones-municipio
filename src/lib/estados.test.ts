@@ -1,16 +1,40 @@
 import { describe, expect, it } from 'vitest';
-import { categoriasNoDisponibles, reglasEtapa, transicionesPosibles, validarTransicion, type DatosValidacion } from './estados';
+import { categoriasNoDisponibles, consecuencias, reglasEtapa, transicionesPosibles, validarTransicion, type DatosValidacion } from './estados';
 
 const futuro = new Date('2099-01-01T13:00:00Z');
-const base: DatosValidacion = { tipo: 'publica', estado: 'borrador', fechaApertura: futuro, cantidadAdjudicaciones: 0 };
+const base: DatosValidacion = { tipo: 'publica', estado: 'borrador', fechaApertura: futuro, cantidadAdjudicaciones: 0, cantidadInvitados: 5, cantidadDocumentosAdjudicacion: 0 };
 
 describe('transiciones', () => {
   it('una pública no puede saltar de borrador a adjudicada', () => {
     expect(validarTransicion(base, 'adjudicada', 'admin', null)).toHaveLength(1);
   });
 
-  it('una privada pasa por «En trámite» antes de adjudicarse', () => {
-    const d = { ...base, tipo: 'privada' as const, cantidadAdjudicaciones: 1 };
+  it('una privada pasa de borrador directo al resultado, con sus requisitos', () => {
+    const d = { ...base, tipo: 'privada' as const };
+    expect(validarTransicion(d, 'adjudicada', 'compras', null)).toEqual(['Para adjudicar hay que cargar al menos un adjudicatario con su monto.']);
+    expect(validarTransicion({ ...d, cantidadAdjudicaciones: 1 }, 'adjudicada', 'compras', null)).toEqual([]);
+    expect(validarTransicion(d, 'desierta', 'compras', null)).toHaveLength(1);
+    expect(validarTransicion(d, 'desierta', 'compras', 'No se presentaron ofertas')).toEqual([]);
+    expect(reglasEtapa('privada', 'borrador', 'compras')).toMatchObject({ adjudicatarios: true });
+    expect(reglasEtapa('privada', 'borrador', 'compras').campos.has('cantidadOfertantes')).toBe(true);
+    expect(reglasEtapa('privada', 'borrador', 'compras').categorias).toContain('Decreto de adjudicación');
+    expect(reglasEtapa('privada', 'borrador', 'compras').categorias).toContain('Orden de compra / contrato');
+    expect(reglasEtapa('privada', 'borrador', 'compras').categorias).toContain('Ampliación');
+    expect(categoriasNoDisponibles('concurso', 'borrador', 'compras')).toContain('Orden de compra / contrato');
+    expect(categoriasNoDisponibles('privada', 'desierta', 'compras')).toContain('Orden de compra / contrato');
+  });
+
+  it('con una orden de compra cargada solo se cierra adjudicando', () => {
+    const d = { ...base, tipo: 'privada' as const, cantidadAdjudicaciones: 1, cantidadDocumentosAdjudicacion: 1 };
+    expect(validarTransicion(d, 'adjudicada', 'compras', null)).toEqual([]);
+    expect(validarTransicion(d, 'desierta', 'compras', 'No se presentaron ofertas')).toEqual([
+      'Hay un decreto de adjudicación, una orden de compra o una ampliación cargados: sin adjudicación no corresponden. Quitalos antes de cerrar.',
+    ]);
+    expect(validarTransicion({ ...d, estado: 'borrador' }, 'anulada', 'compras', 'Se dejó sin efecto')).toHaveLength(1);
+  });
+
+  it('un concurso pasa por «En trámite» antes de adjudicarse', () => {
+    const d = { ...base, tipo: 'concurso' as const, cantidadAdjudicaciones: 1 };
     expect(validarTransicion(d, 'adjudicada', 'compras', null)).toHaveLength(1);
     expect(validarTransicion(d, 'tramite', 'compras', null)).toEqual([]);
     expect(validarTransicion({ ...d, estado: 'tramite' }, 'adjudicada', 'compras', null)).toEqual([]);
@@ -54,6 +78,32 @@ describe('transiciones', () => {
   });
 });
 
+describe('mínimo legal de invitados', () => {
+  it('5 en públicas y privadas, 3 en concursos, al salir del borrador', () => {
+    expect(validarTransicion({ ...base, cantidadInvitados: 4 }, 'llamado', 'compras', null)).toEqual([
+      'Hay que cargar al menos 5 proveedores invitados (mínimo legal para una Licitación Pública). Hay 4.',
+    ]);
+    expect(validarTransicion(base, 'llamado', 'compras', null)).toEqual([]);
+    const privada = { ...base, tipo: 'privada' as const, cantidadAdjudicaciones: 1 };
+    expect(validarTransicion({ ...privada, cantidadInvitados: 0 }, 'adjudicada', 'compras', null)).toHaveLength(1);
+    const concurso = { ...base, tipo: 'concurso' as const };
+    expect(validarTransicion({ ...concurso, cantidadInvitados: 2 }, 'tramite', 'compras', null)).toHaveLength(1);
+    expect(validarTransicion({ ...concurso, cantidadInvitados: 3 }, 'tramite', 'compras', null)).toEqual([]);
+  });
+
+  it('anular no lo pide, ni los que ya salieron del borrador', () => {
+    expect(validarTransicion({ ...base, tipo: 'concurso', cantidadInvitados: 0 }, 'anulada', 'compras', 'Se dejó sin efecto')).toEqual([]);
+    const importada = { ...base, tipo: 'privada' as const, estado: 'tramite' as const, cantidadInvitados: 0, cantidadAdjudicaciones: 1 };
+    expect(validarTransicion(importada, 'adjudicada', 'compras', null)).toEqual([]);
+    const reabierta = { ...base, tipo: 'concurso' as const, estado: 'tramite' as const, cantidadInvitados: 2 };
+    expect(validarTransicion(reabierta, 'desierta', 'compras', 'Sin ofertas')).toEqual([]);
+  });
+
+  it('una privada nueva no pasa por «En trámite»: se publica con el resultado', () => {
+    expect(transicionesPosibles('privada', 'borrador', 'compras').map((t) => t.destino)).not.toContain('tramite');
+  });
+});
+
 describe('qué se puede cargar en cada etapa', () => {
   it('los adjudicatarios solo con las ofertas abiertas', () => {
     expect(reglasEtapa('publica', 'borrador', 'admin').adjudicatarios).toBe(false);
@@ -81,7 +131,13 @@ describe('qué se puede cargar en cada etapa', () => {
 
   it('los campos respetan la modalidad', () => {
     expect(reglasEtapa('privada', 'borrador', 'compras').camposModalidad.has('valorPliego')).toBe(false);
-    expect(reglasEtapa('publica', 'borrador', 'compras').camposModalidad.has('invitados')).toBe(false);
+    expect(reglasEtapa('publica', 'borrador', 'compras').camposModalidad.has('lugarApertura')).toBe(true);
+  });
+
+  it('al reabrir una adjudicada avisa que los adjudicatarios dejan de verse', () => {
+    const d = { ...base, estado: 'adjudicada' as const, cantidadAdjudicaciones: 2 };
+    expect(consecuencias(d, 'evaluacion', true).join(' ')).toContain('el sitio no muestra los adjudicatarios');
+    expect(consecuencias({ ...d, cantidadAdjudicaciones: 0 }, 'evaluacion', true).join(' ')).not.toContain('adjudicatarios');
   });
 
   it('los documentos siguen el orden del procedimiento', () => {
@@ -89,6 +145,11 @@ describe('qué se puede cargar en cada etapa', () => {
     expect(categoriasNoDisponibles('publica', 'borrador', 'compras')).toContain('Acta de apertura');
     expect(reglasEtapa('publica', 'llamado', 'compras').categorias).toContain('Prórroga');
     expect(reglasEtapa('publica', 'evaluacion', 'compras').categorias).toContain('Acta de apertura');
+    // Pedido de Compras: el decreto de adjudicación recién con la licitación adjudicada.
+    expect(reglasEtapa('publica', 'evaluacion', 'compras').categorias).not.toContain('Decreto de adjudicación');
+    expect(reglasEtapa('concurso', 'tramite', 'compras').categorias).not.toContain('Decreto de adjudicación');
+    expect(reglasEtapa('publica', 'adjudicada', 'compras').categorias).toContain('Decreto de adjudicación');
+    expect(reglasEtapa('publica', 'desierta', 'compras').categorias).not.toContain('Decreto de adjudicación');
     expect(reglasEtapa('publica', 'adjudicada', 'compras').categorias).toContain('Orden de compra / contrato');
     expect(reglasEtapa('publica', 'desierta', 'compras').categorias).not.toContain('Orden de compra / contrato');
     // Lo de etapas anteriores se puede seguir subiendo (publicación a destiempo).

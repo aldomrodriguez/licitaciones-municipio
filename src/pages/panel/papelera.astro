@@ -38,7 +38,7 @@ const admin = Astro.locals.usuario!.rol === 'admin';
                 </div>
                 <form method="post" data-accion="restaurarProcedimiento" data-titulo={`¿Restaurar ${nombre}?`} data-detalle="Vuelve al listado con el estado que tenía. Si no era borrador, vuelve a verse en el sitio público." data-boton="Restaurar" data-exito="Procedimiento restaurado.">
                   <input type="hidden" name="id" value={p.id} />
-                  <button type="submit" class="btn-secundario">Restaurar</button>
+                  <button type="submit" class="btn-secundario" aria-label={`Restaurar ${nombre}`}>Restaurar</button>
                 </form>
                 {admin && (
                   <form
@@ -52,7 +52,7 @@ const admin = Astro.locals.usuario!.rol === 'admin';
                     data-exito="Procedimiento eliminado definitivamente."
                   >
                     <input type="hidden" name="id" value={p.id} />
-                    <button type="submit" class="btn-fantasma text-peligro hover:bg-peligro-fondo hover:text-peligro">Eliminar para siempre</button>
+                    <button type="submit" class="btn-fantasma text-peligro hover:bg-peligro-fondo hover:text-peligro" aria-label={`Eliminar para siempre ${nombre}`}>Eliminar para siempre</button>
                   </form>
                 )}
               </li>
@@ -81,7 +81,7 @@ const admin = Astro.locals.usuario!.rol === 'admin';
               </div>
               <form method="post" data-accion="restaurarDocumento" data-titulo={`¿Restaurar «${d.titulo}»?`} data-detalle={d.publico ? 'Vuelve a la ficha y, si el procedimiento está publicado, al sitio.' : 'Vuelve a la ficha como documento interno.'} data-boton="Restaurar" data-exito="Documento restaurado.">
                 <input type="hidden" name="documentoId" value={d.id} />
-                <button type="submit" class="btn-secundario">Restaurar</button>
+                <button type="submit" class="btn-secundario" aria-label={`Restaurar «${d.titulo}»`}>Restaurar</button>
               </form>
               {admin && (
                 <form
@@ -95,7 +95,7 @@ const admin = Astro.locals.usuario!.rol === 'admin';
                   data-exito="Documento eliminado definitivamente."
                 >
                   <input type="hidden" name="documentoId" value={d.id} />
-                  <button type="submit" class="btn-fantasma text-peligro hover:bg-peligro-fondo hover:text-peligro">Eliminar para siempre</button>
+                  <button type="submit" class="btn-fantasma text-peligro hover:bg-peligro-fondo hover:text-peligro" aria-label={`Eliminar para siempre «${d.titulo}»`}>Eliminar para siempre</button>
                 </form>
               )}
             </li>

@@ -42,7 +42,7 @@ export const ESTADOS = {
   },
   llamado: {
     nombre: 'Llamado abierto',
-    descripcion: 'Publicado. Se reciben ofertas hasta la fecha y hora de apertura.',
+    descripcion: 'Publicado. Se reciben ofertas hasta el día de la apertura.',
     tono: 'abierto',
     final: false,
     pideMotivo: false,
@@ -104,9 +104,10 @@ const FLUJOS: Record<Tipo, Partial<Record<Estado, readonly Estado[]>>> = {
     llamado: ['evaluacion', 'desierta', 'anulada'],
     evaluacion: ['adjudicada', 'desierta', 'fracasada', 'anulada'],
   },
-  // Aunque se carguen a destiempo, pasan por «En trámite»: ahí se cargan ofertas y adjudicatarios.
+  // Las privadas se publican solo con su resultado (para que no se presente nadie sin invitación):
+  // se cargan en borrador y pasan directo al cierre. Las importadas «En trámite» siguen desde ahí.
   privada: {
-    borrador: ['tramite', 'anulada'],
+    borrador: ['adjudicada', 'desierta', 'fracasada', 'anulada'],
     tramite: ['adjudicada', 'desierta', 'fracasada', 'anulada'],
   },
   concurso: {
@@ -129,6 +130,9 @@ const REAPERTURA: Record<Tipo, Estado> = {
   concurso: 'tramite',
 };
 
+/** Mínimo legal de proveedores invitados por modalidad. */
+export const MINIMO_INVITADOS: Record<Tipo, number> = { publica: 5, privada: 5, concurso: 3 };
+
 export type Rol = 'admin' | 'compras';
 
 export interface Transicion {
@@ -150,6 +154,9 @@ export interface DatosValidacion {
   estado: Estado;
   fechaApertura: Date | null;
   cantidadAdjudicaciones: number;
+  cantidadInvitados: number;
+  /** Órdenes de compra y ampliaciones cargadas (solo tienen sentido si se adjudica). */
+  cantidadDocumentosAdjudicacion: number;
 }
 
 /** Devuelve los motivos por los que no se puede pasar a `destino` (vacío = se puede). */
@@ -179,8 +186,20 @@ export function validarTransicion(
   } else if (destino === 'llamado' && datos.fechaApertura && diaLobos(datos.fechaApertura) < diaLobos(ahora)) {
     errores.push('La fecha de apertura ya pasó: corregila antes de abrir el llamado.');
   }
+  // El mínimo se exige al salir del borrador: los importados y las reaperturas no lo vuelven a pedir.
+  // Anular no lo pide: se puede dejar sin efecto antes de invitar a nadie.
+  const minimo = MINIMO_INVITADOS[datos.tipo];
+  if (datos.estado === 'borrador' && destino !== 'anulada' && datos.cantidadInvitados < minimo) {
+    errores.push(
+      `Hay que cargar al menos ${minimo} proveedores invitados (mínimo legal para una ${TIPOS[datos.tipo].nombre}).` +
+        (datos.cantidadInvitados > 0 ? ` Hay ${datos.cantidadInvitados}.` : ''),
+    );
+  }
   if (destino === 'adjudicada' && datos.cantidadAdjudicaciones === 0) {
     errores.push('Para adjudicar hay que cargar al menos un adjudicatario con su monto.');
+  }
+  if (ESTADOS[destino].final && destino !== 'adjudicada' && datos.cantidadDocumentosAdjudicacion > 0) {
+    errores.push('Hay un decreto de adjudicación, una orden de compra o una ampliación cargados: sin adjudicación no corresponden. Quitalos antes de cerrar.');
   }
   return errores;
 }
@@ -223,6 +242,9 @@ export function consecuencias(
   if (correccion) {
     out.push(`Se reabre como «${ESTADOS[destino].nombre}». Queda registrado en el historial.`);
   }
+  if (correccion && actual === 'adjudicada' && datos.cantidadAdjudicaciones > 0) {
+    out.push('Mientras esté reabierta, el sitio no muestra los adjudicatarios. Vuelven a publicarse al adjudicar de nuevo.');
+  }
   if (tipo === 'publica' && destino === 'evaluacion' && !correccion) {
     out.push('A partir de acá se cargan las ofertas recibidas, el acta de apertura y los adjudicatarios.');
   }
@@ -243,15 +265,14 @@ export type CampoEtapa =
   | 'valorPliego'
   | 'fechaApertura'
   | 'lugarApertura'
-  | 'invitados'
   | 'cantidadOfertantes'
   | 'observacionesPublicas';
 
 /** Campos que solo tienen sentido en ciertas modalidades. */
 const CAMPOS_POR_TIPO: Record<Tipo, readonly CampoEtapa[]> = {
   publica: ['numero', 'anio', 'objeto', 'areaSolicitante', 'presupuestoOficial', 'valorPliego', 'fechaApertura', 'lugarApertura', 'cantidadOfertantes', 'observacionesPublicas'],
-  privada: ['numero', 'anio', 'objeto', 'areaSolicitante', 'presupuestoOficial', 'fechaApertura', 'invitados', 'cantidadOfertantes', 'observacionesPublicas'],
-  concurso: ['numero', 'anio', 'objeto', 'areaSolicitante', 'presupuestoOficial', 'fechaApertura', 'invitados', 'cantidadOfertantes', 'observacionesPublicas'],
+  privada: ['numero', 'anio', 'objeto', 'areaSolicitante', 'presupuestoOficial', 'fechaApertura', 'cantidadOfertantes', 'observacionesPublicas'],
+  concurso: ['numero', 'anio', 'objeto', 'areaSolicitante', 'presupuestoOficial', 'fechaApertura', 'cantidadOfertantes', 'observacionesPublicas'],
 };
 
 /**
@@ -270,6 +291,18 @@ const ETAPA: Record<Estado, Etapa> = {
   anulada: 3,
 };
 
+/**
+ * Modalidades que se cargan ya terminadas: en borrador se completa todo lo de la etapa 2
+ * (ofertas, adjudicatarios, actas y decretos), para publicarlas directo con su resultado.
+ */
+const CARGA_AL_FINAL: readonly Tipo[] = ['privada'];
+
+/** Etapas cuyas reglas de carga valen en este estado. */
+function etapasDeCarga(tipo: Tipo, estado: Estado): readonly Etapa[] {
+  const etapa = ETAPA[estado];
+  return etapa === 0 && CARGA_AL_FINAL.includes(tipo) ? [0, 2] : [etapa];
+}
+
 /** Etapas en que se puede modificar cada campo. */
 const CAMPOS_POR_ETAPA: Record<CampoEtapa, readonly Etapa[]> = {
   numero: [0],
@@ -280,7 +313,6 @@ const CAMPOS_POR_ETAPA: Record<CampoEtapa, readonly Etapa[]> = {
   valorPliego: [0, 1],
   fechaApertura: [0, 1, 2], // en el llamado, moverla es una prórroga
   lugarApertura: [0, 1],
-  invitados: [0, 2],
   cantidadOfertantes: [2],
   observacionesPublicas: [0, 1, 2, 3],
 };
@@ -292,15 +324,15 @@ const DOCUMENTO_DESDE: Record<Categoria, Etapa> = {
   'Prórroga': 1,
   'Acta de apertura': 2,
   'Dictamen / preadjudicación': 2,
-  'Decreto de adjudicación': 2,
+  'Decreto de adjudicación': 3,
   'Orden de compra / contrato': 3,
   'Ampliación': 3,
   'Expediente': 2,
   'Imagen': 0,
   'Otro': 0,
 };
-/** Documentos que solo existen si hubo adjudicación. */
-const SOLO_ADJUDICADA: readonly Categoria[] = ['Orden de compra / contrato', 'Ampliación'];
+/** Documentos que solo existen si hubo adjudicación (pedido de Compras: el decreto también). */
+export const SOLO_ADJUDICADA: readonly Categoria[] = ['Decreto de adjudicación', 'Orden de compra / contrato', 'Ampliación'];
 
 export interface ReglasEtapa {
   /** Campos editables ahora. */
@@ -308,6 +340,8 @@ export interface ReglasEtapa {
   /** Campos de la modalidad (editables o no), para saber qué mostrar. */
   camposModalidad: ReadonlySet<CampoEtapa>;
   adjudicatarios: boolean;
+  /** Lista de invitados y si compraron el pliego: hasta el cierre. */
+  invitados: boolean;
   categorias: readonly Categoria[];
   /** Qué se hace en esta etapa, para orientar a quien carga. */
   guia: string;
@@ -315,19 +349,19 @@ export interface ReglasEtapa {
 
 const GUIAS: Record<Tipo, Record<Etapa, string>> = {
   publica: {
-    0: 'Completá los datos del llamado, la fecha de apertura, y subí el pliego. Cuando esté listo, abrí el llamado.',
+    0: 'Completá los datos del llamado y la fecha de apertura, cargá los proveedores invitados (mínimo 5) y subí el pliego. Cuando esté listo, abrí el llamado.',
     1: 'El llamado está publicado. Podés subir circulares y prórrogas, o mover la fecha de apertura. Después de la apertura, pasalo a «En evaluación».',
     2: 'Cargá la cantidad de ofertas, el acta de apertura, el dictamen y los adjudicatarios. Después adjudicá o cerrá el procedimiento.',
     3: 'Procedimiento cerrado. Solo se pueden agregar observaciones y documentación (decreto, orden de compra, ampliaciones).',
   },
   privada: {
-    0: 'Completá los datos y los proveedores invitados. Cuando tengas las ofertas, pasalo a «En trámite de adjudicación».',
+    0: 'Cargá todo junto: datos, proveedores invitados (mínimo 5), ofertas recibidas, documentación y adjudicatarios. No se publica hasta que elijas el resultado (adjudicada, desierta, fracasada o anulada).',
     1: '',
     2: 'Cargá la cantidad de ofertas, la documentación y los adjudicatarios. Después adjudicá o cerrá el procedimiento.',
     3: 'Procedimiento cerrado. Solo se pueden agregar observaciones y documentación (decreto, orden de compra, ampliaciones).',
   },
   concurso: {
-    0: 'Completá los datos y los proveedores invitados. Cuando tengas los presupuestos, pasalo a «En trámite de adjudicación».',
+    0: 'Completá los datos y los proveedores invitados (mínimo 3). Cuando tengas los presupuestos, pasalo a «En trámite de adjudicación».',
     1: '',
     2: 'Cargá la cantidad de presupuestos recibidos, la documentación y los adjudicatarios. Después adjudicá o cerrá el concurso.',
     3: 'Concurso cerrado. Solo se pueden agregar observaciones y documentación.',
@@ -335,19 +369,22 @@ const GUIAS: Record<Tipo, Record<Etapa, string>> = {
 };
 
 export function reglasEtapa(tipo: Tipo, estado: Estado, rol: Rol): ReglasEtapa {
-  const etapa = ETAPA[estado];
+  const etapas = etapasDeCarga(tipo, estado);
+  const ultima = Math.max(...etapas);
   const camposModalidad = new Set(CAMPOS_POR_TIPO[tipo]);
   const campos = new Set(
     CAMPOS_POR_TIPO[tipo].filter((c) => {
       // Un admin puede corregir número y año aunque ya esté publicado (cambia la dirección pública).
       if (rol === 'admin' && (c === 'numero' || c === 'anio')) return true;
-      return CAMPOS_POR_ETAPA[c].includes(etapa);
+      return CAMPOS_POR_ETAPA[c].some((e) => etapas.includes(e));
     }),
   );
-  const categorias = CATEGORIAS.filter(
-    (c) => DOCUMENTO_DESDE[c] <= etapa && (!SOLO_ADJUDICADA.includes(c) || estado === 'adjudicada'),
+  // Una privada se carga ya terminada: en borrador también van el decreto y la orden de compra.
+  const cargaFinal = estado === 'borrador' && CARGA_AL_FINAL.includes(tipo);
+  const categorias = CATEGORIAS.filter((c) =>
+    SOLO_ADJUDICADA.includes(c) ? estado === 'adjudicada' || cargaFinal : DOCUMENTO_DESDE[c] <= ultima,
   );
-  return { campos, camposModalidad, adjudicatarios: etapa === 2, categorias, guia: GUIAS[tipo][etapa] };
+  return { campos, camposModalidad, adjudicatarios: etapas.includes(2), invitados: ultima < 3, categorias, guia: GUIAS[tipo][ETAPA[estado]] };
 }
 
 /** Por qué un campo no se puede editar ahora (para mostrar al lado del campo). */

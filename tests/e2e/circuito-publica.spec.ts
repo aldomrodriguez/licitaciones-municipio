@@ -1,4 +1,6 @@
-import { expect, test, type Page } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+import type { Page } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { ADMIN } from '../../playwright.config';
 
 /** AAAA-MM-DD en hora de Lobos (UTC-3), `dias` desde hoy. */
@@ -51,6 +53,15 @@ async function agregarAdjudicatario(page: Page, proveedor: string, cuit: string,
   await expect(page.getByRole('region', { name: /adjudicatarios/i })).toContainText(proveedor);
 }
 
+async function agregarInvitado(page: Page, proveedor: string) {
+  const plegable = page.locator('details', { has: page.locator('#inv-proveedor') });
+  if (!(await plegable.evaluate((d: HTMLDetailsElement) => d.open))) await plegable.locator('summary').click();
+  await page.locator('#inv-proveedor').fill(proveedor);
+  await plegable.getByRole('button', { name: 'Agregar', exact: true }).click();
+  await confirmar(page);
+  await expect(page.getByRole('region', { name: 'Proveedores invitados' })).toContainText(proveedor);
+}
+
 test('licitación pública: borrador → llamado → prórroga → evaluación → adjudicada', async ({ page }) => {
   const anio = Number(diaLobos().slice(0, 4));
   const objeto = `Adquisición de luminarias LED para prueba E2E ${Date.now()}`;
@@ -85,21 +96,39 @@ test('licitación pública: borrador → llamado → prórroga → evaluación �
   await expect(documentos).toContainText('Pliego LP7 2026');
   await expect(documentos).toContainText('Circular aclaratoria 1');
 
-  // Un archivo que no es PDF aunque se llame .pdf se rechaza.
-  await page.locator('[data-subida] [data-input]').setInputFiles('tests/fixtures/falso.pdf');
+  // Un archivo que no es PDF aunque se llame .pdf se rechaza, sin frenar a los válidos de la misma tanda.
+  await page.locator('[data-subida] [data-input]').setInputFiles([
+    { name: 'falso.pdf', mimeType: 'application/pdf', buffer: readFileSync('tests/fixtures/falso.pdf') },
+    { name: 'nota-interna.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4\n%%EOF\n') },
+  ]);
   await page.locator('[data-subir]').click();
   await confirmar(page);
-  await expect(page.locator('#dlg-error')).toBeVisible();
+  await expect(page.locator('#dlg-error')).toContainText('Se subió 1. No se pudo subir «Falso»');
   await page.locator('#dlg-confirmar [data-cancelar]').click();
-  await page.goto(urlPanel);
+  await expect(documentos).toContainText('Nota interna');
+  await expect(documentos).not.toContainText('Falso');
 
-  // 4. Abrir el llamado: aparece en la portada.
+  // 4. Sin el mínimo legal de invitados no se abre el llamado.
+  const estado = page.getByRole('region', { name: 'Estado actual' });
+  await expect(estado).toContainText('al menos 5 proveedores invitados');
+  for (const n of [1, 2, 3, 4, 5]) await agregarInvitado(page, `Proveedor invitado ${n} SRL`);
+  const invitados = page.getByRole('region', { name: 'Proveedores invitados' });
+  await invitados.getByRole('button', { name: 'Marcar que Proveedor invitado 2 SRL compró el pliego' }).click();
+  await confirmar(page);
+  await expect(invitados.getByRole('button', { name: /Proveedor invitado 2 SRL compró el pliego/ })).toContainText('Compró el pliego');
+  await expect(invitados.getByText('Compró el pliego')).toHaveCount(1);
+
+  // Abrir el llamado: aparece en la portada.
   await cambiarEstado(page, 'Llamado abierto');
   await page.goto('/');
   await expect(page.getByRole('region', { name: 'Llamados abiertos' })).toContainText(objeto);
 
-  // Los documentos públicos se descargan.
+  // De los invitados se publica solo la cantidad.
   await page.goto(urlPublica);
+  await expect(page.locator('main')).toContainText(/Proveedores invitados\s*5/);
+  await expect(page.locator('main')).not.toContainText('Proveedor invitado 1 SRL');
+
+  // Los documentos públicos se descargan.
   const enlace = page.getByRole('link', { name: /Pliego LP7 2026/ }).first();
   const descarga = await page.request.get((await enlace.getAttribute('href'))!);
   expect(descarga.status()).toBe(200);

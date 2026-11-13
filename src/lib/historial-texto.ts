@@ -21,6 +21,12 @@ export function describirEntrada(h: EntradaHistorial): string {
       return `Se agregó el adjudicatario ${h.valorNuevo}.`;
     case 'adjudicacion_quitada':
       return `Se quitó el adjudicatario ${h.valorAnterior}.`;
+    case 'invitado_agregado':
+      return `Se agregó a ${h.valorNuevo} como invitado.`;
+    case 'invitado_quitado':
+      return `Se quitó a ${h.valorAnterior} de los invitados.`;
+    case 'invitado_pliego':
+      return `${h.campo}: ${h.valorNuevo}.`;
     case 'eliminado':
       return 'Se envió a la papelera.';
     case 'restaurado':

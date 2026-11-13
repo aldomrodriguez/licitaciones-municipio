@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { readFileSync } from 'node:fs';
 import { ADMIN } from '../../playwright.config';
 
@@ -112,7 +113,7 @@ test('configuración del sitio: identidad, logo, header y registro', async ({ pa
 
 test('la configuración es solo para administradores', async ({ page, browser }) => {
   const origen = { Origin: 'http://localhost:4600' };
-  const email = `compras${Date.now()}@lobos.gob.ar`;
+  const email = `compras${Date.now()}@municipio.gob.ar`;
   const textos = { queEs: 'Texto de prueba suficientemente largo', publica: 'xxxxxxxxxxx', privada: 'xxxxxxxxxxx', concurso: 'xxxxxxxxxxx' };
 
   // Sin sesión.
@@ -133,6 +134,17 @@ test('la configuración es solo para administradores', async ({ page, browser })
   await p2.getByLabel('Email').fill(email);
   await p2.getByLabel('Contraseña').fill(clave);
   await p2.getByRole('button', { name: 'Ingresar' }).click();
+  // La contraseña generada es provisoria: hasta cambiarla, el panel solo deja entrar a «Mi cuenta».
+  await expect(p2).toHaveURL(/\/panel\/cuenta$/);
+  expect((await p2.request.post('/_actions/guardarTextos', { multipart: textos, headers: origen })).status()).toBe(403);
+  await p2.goto('/panel');
+  await expect(p2).toHaveURL(/\/panel\/cuenta$/);
+  await p2.getByLabel('Contraseña provisoria').fill(clave);
+  await p2.getByLabel('Contraseña nueva').fill('una-clave-propia-123');
+  await p2.getByLabel('Repetila').fill('una-clave-propia-123');
+  await p2.getByRole('button', { name: 'Cambiar contraseña' }).click();
+  await confirmar(p2);
+  await expect(p2).toHaveURL(/\/panel$/);
   await expect(p2.getByRole('link', { name: 'Procedimientos' })).toBeVisible();
   await expect(p2.getByRole('link', { name: 'Configuración del sitio' })).toHaveCount(0);
   expect((await p2.request.post('/_actions/guardarTextos', { multipart: textos, headers: origen })).status()).toBe(403);

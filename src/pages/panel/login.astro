@@ -4,22 +4,34 @@ import { db } from '../../lib/db';
 import { guardarCookie, iniciarSesion } from '../../lib/auth';
 import { altoPara, urlImagen } from '../../lib/configuracion';
 import Cabeza from '../../components/marca/Cabeza.astro';
+import { destinoDespuesDeLogin } from '../../lib/seguridad';
+import { limiteLogin, textoEspera } from '../../lib/limite-intentos';
 
-const volverParam = Astro.url.searchParams.get('volver') ?? '/panel';
-const volver = volverParam.startsWith('/panel') ? volverParam : '/panel';
+const volver = destinoDespuesDeLogin(Astro.url.searchParams.get('volver'));
 let error = '';
 let email = '';
 
 if (Astro.request.method === 'POST') {
   const datos = await Astro.request.formData();
   email = String(datos.get('email') ?? '');
-  const r = await iniciarSesion(db(), email, String(datos.get('clave') ?? ''));
-  if (r) {
-    guardarCookie(Astro.cookies, r.token);
-    return Astro.redirect(volver, 303);
+  const ip = Astro.clientAddress;
+  // El límite se chequea antes de verificar la clave: así un ataque no consume CPU con argon2.
+  const espera = limiteLogin.espera(ip, email);
+  if (espera > 0) {
+    error = textoEspera(espera);
+    Astro.response.status = 429;
+    Astro.response.headers.set('Retry-After', String(Math.ceil(espera / 1000)));
+  } else {
+    const r = await iniciarSesion(db(), email, String(datos.get('clave') ?? ''));
+    if (r) {
+      limiteLogin.registrarExito(ip, email);
+      guardarCookie(Astro.cookies, r.token);
+      return Astro.redirect(r.usuario.debeCambiarClave ? '/panel/cuenta' : volver, 303);
+    }
+    limiteLogin.registrarFallo(ip, email);
+    error = 'El email o la contraseña no son correctos.';
+    Astro.response.status = 401;
   }
-  error = 'El email o la contraseña no son correctos.';
-  Astro.response.status = 401;
 }
 if (Astro.locals.usuario) return Astro.redirect('/panel');
 const sitio = Astro.locals.sitio;

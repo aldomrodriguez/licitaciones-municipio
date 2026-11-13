@@ -1,14 +1,35 @@
 ---
 import Panel from '../../layouts/Panel.astro';
 const yo = Astro.locals.usuario!;
+const provisoria = yo.debeCambiarClave;
 ---
 
 <Panel titulo="Mi cuenta">
   <h1 class="text-3xl font-bold tracking-tight">Mi cuenta</h1>
   <p class="mt-1 text-gris">{yo.nombre}, {yo.email}</p>
+  {
+    provisoria && (
+      <p class="mt-6 max-w-[440px] rounded-lg border border-proceso bg-proceso-fondo p-4 text-sm text-proceso" role="alert">
+        Estás usando una contraseña provisoria que generó el sistema. Para seguir, elegí una propia.
+      </p>
+    )
+  }
   <section aria-labelledby="t-clave" class="mt-8 max-w-[440px] rounded-lg border border-linea bg-white p-5">
     <h2 id="t-clave" class="text-lg font-bold">Cambiar contraseña</h2>
-    <form method="post" class="mt-4 space-y-4" data-accion="cambiarMiClave" data-titulo="¿Cambiar tu contraseña?" data-detalle="La próxima vez vas a ingresar con la nueva." data-boton="Cambiar contraseña" data-exito="Contraseña cambiada.">
+    <form
+      method="post"
+      class="mt-4 space-y-4"
+      data-accion="cambiarMiClave"
+      data-titulo="¿Cambiar tu contraseña?"
+      data-detalle="La próxima vez vas a ingresar con la nueva. Se cierran tus sesiones abiertas en otros equipos."
+      data-boton="Cambiar contraseña"
+      data-exito="Contraseña cambiada."
+      data-ir={provisoria ? '/panel' : undefined}
+    >
+      <div>
+        <label for="actual" class="etiqueta">{provisoria ? 'Contraseña provisoria' : 'Contraseña actual'}</label>
+        <input id="actual" name="actual" type="password" required autocomplete="current-password" class="campo" />
+      </div>
       <div>
         <label for="nueva" class="etiqueta">Contraseña nueva</label>
         <input id="nueva" name="nueva" type="password" required minlength="10" autocomplete="new-password" class="campo" aria-describedby="nueva-ayuda" />

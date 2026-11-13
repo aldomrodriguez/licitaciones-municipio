@@ -87,7 +87,8 @@ export async function respuestaDescarga(archivo: string, nombre: string, mime: s
       'Content-Type': mime,
       'Content-Length': String(info.size),
       'Content-Disposition': `${disposicion}; filename="${nombre.replace(/[^\w.\- ]/g, '_')}"; filename*=UTF-8''${encodeURIComponent(nombre)}`,
-      'Cache-Control': 'public, max-age=3600',
+      // Sin caché larga: si el documento pasa a interno o a la papelera, deja de servirse enseguida.
+      'Cache-Control': 'no-cache',
       'X-Content-Type-Options': 'nosniff',
     },
   });

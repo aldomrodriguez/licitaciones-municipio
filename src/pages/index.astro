@@ -45,8 +45,8 @@ const estadosFiltro = (['llamado', 'evaluacion', 'tramite', 'adjudicada', 'desie
     <div class="pointer-events-none absolute -top-36 right-[3vw] rotate-[-7deg] text-[390px] leading-none font-black text-white/[.075] select-none" aria-hidden="true">
       {letraDecorativa(nombre)}
     </div>
-    <div class="contenedor relative pt-12 pb-14 sm:pt-16 sm:pb-[75px]">
-      <nav aria-label="Ubicación" class="mb-10 text-xs text-white sm:mb-14">
+    <div class="contenedor relative pt-7 pb-9 sm:pt-16 sm:pb-[75px]">
+      <nav aria-label="Ubicación" class="mb-6 text-xs text-white sm:mb-14">
         <ol class="flex flex-wrap items-center gap-2.5">
           {
             migas.map((m) => (
@@ -59,13 +59,13 @@ const estadosFiltro = (['llamado', 'evaluacion', 'tramite', 'adjudicada', 'desie
           <li><b class="text-white" aria-current="page">Licitaciones</b></li>
         </ol>
       </nav>
-      <h1 class="text-[44px] leading-none font-bold tracking-[-.045em] sm:text-[clamp(44px,6vw,72px)]">Licitaciones y concursos</h1>
-      <p class="mt-5 max-w-[660px] text-lg leading-normal text-marca-sobre-marca">{queEs}</p>
+      <h1 class="text-[36px] leading-none font-bold tracking-[-.045em] sm:text-[clamp(44px,6vw,72px)]">Licitaciones y concursos</h1>
+      <p class="mt-4 max-w-[660px] text-base leading-normal text-marca-sobre-marca sm:mt-5 sm:text-lg">{queEs}</p>
     </div>
   </section>
 
   <section aria-labelledby="titulo-abiertos" class="bg-papel">
-    <div class="contenedor py-12 sm:py-16">
+    <div class="contenedor py-9 sm:py-16">
       <div class="grid gap-8 lg:grid-cols-[280px_1fr] lg:gap-16">
         <div>
           <h2 id="titulo-abiertos" class="text-[29px] leading-tight font-bold tracking-[-.035em] sm:text-[35px]">Llamados abiertos</h2>

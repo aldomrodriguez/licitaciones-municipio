@@ -13,8 +13,10 @@
  *   data-exito      aviso después de guardar
  *   data-ir         a dónde ir después ({id} se reemplaza por el id devuelto); si falta, recarga
  *   data-diff       formulario de edición: la confirmación muestra los campos cambiados
+ *   data-total, data-presupuesto  (centavos) avisa si el total más el campo «monto» supera el presupuesto
  */
 import { actions, isInputError, type ActionError } from 'astro:actions';
+import { excesoPresupuesto, parsearMonto } from '../lib/formato';
 import { avisar, avisarDespues, confirmar, mostrarAvisoPendiente } from './confirmar';
 
 const ACCIONES = {
@@ -23,6 +25,9 @@ const ACCIONES = {
   cambiarEstado: actions.cambiarEstado,
   agregarAdjudicacion: actions.agregarAdjudicacion,
   quitarAdjudicacion: actions.quitarAdjudicacion,
+  agregarInvitado: actions.agregarInvitado,
+  quitarInvitado: actions.quitarInvitado,
+  marcarPliegoComprado: actions.marcarPliegoComprado,
   quitarDocumento: actions.quitarDocumento,
   restaurarDocumento: actions.restaurarDocumento,
   cambiarVisibilidadDocumento: actions.cambiarVisibilidadDocumento,
@@ -126,7 +131,12 @@ let sucio = false;
 let saliendo = false;
 
 function marcarSucio() {
-  sucio = [...document.querySelectorAll<HTMLFormElement>('form[data-diff]')].some((f) => cambios(f).length > 0);
+  sucio = false;
+  for (const f of document.querySelectorAll<HTMLFormElement>('form[data-diff]')) {
+    const conCambios = cambios(f).length > 0;
+    f.toggleAttribute('data-sucio', conCambios);
+    sucio ||= conCambios;
+  }
 }
 
 // Aviso nativo del navegador al cerrar o recargar con cambios sin guardar.
@@ -172,6 +182,12 @@ async function enviar(form: HTMLFormElement, e: SubmitEvent) {
     detalle.push('Cambiaste la fecha de apertura de un llamado publicado: se registra como prórroga y se muestra en el sitio.');
   }
 
+  if (d.presupuesto && d.total !== undefined) {
+    const monto = parsearMonto(new FormData(form).get('monto')?.toString());
+    const exceso = monto && Number.isFinite(monto) ? excesoPresupuesto(Number(d.total) + monto, Number(d.presupuesto)) : null;
+    if (exceso) detalle.push(`Atención: ${exceso}`);
+  }
+
   let resultado: Awaited<ReturnType<(typeof ACCIONES)[NombreAccion]>>['data'] | undefined;
   const ok = await confirmar({
     titulo: d.titulo ?? '¿Confirmás?',
@@ -198,7 +214,10 @@ async function enviar(form: HTMLFormElement, e: SubmitEvent) {
   if (resultado && 'clave' in resultado) {
     await confirmar({
       titulo: 'Contraseña generada',
-      detalle: ['Pasásela a la persona por un canal seguro. No se vuelve a mostrar: anotala ahora.'],
+      detalle: [
+        'Pasásela a la persona por un canal seguro. No se vuelve a mostrar: anotala ahora.',
+        'Es provisoria: al entrar, el sistema le pide que elija una propia.',
+      ],
       lista: [resultado.clave],
       boton: 'Ya la anoté',
     });
