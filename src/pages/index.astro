@@ -4,6 +4,7 @@ import LlamadoAbierto from '../components/publico/LlamadoAbierto.astro';
 import FilaProcedimiento from '../components/publico/FilaProcedimiento.astro';
 import Icono from '../components/ui/Icono.astro';
 import Paginacion from '../components/ui/Paginacion.astro';
+import Modalidades from '../components/publico/Modalidades.astro';
 import buscar from '@tabler/icons/outline/search.svg?raw';
 import { db } from '../lib/db';
 import { aniosDisponibles, listarPublico, llamadosAbiertos } from '../lib/procedimientos';
@@ -11,7 +12,7 @@ import { ESTADOS, LISTA_TIPOS, TIPOS, esEstado, esTipo } from '../lib/estados';
 import { letraDecorativa } from '../lib/configuracion';
 import { paginar } from '../lib/paginacion';
 
-const { nombre, migas, queEs, modalidades, vigenciaMontos } = Astro.locals.sitio;
+const { nombre, migas, queEs } = Astro.locals.sitio;
 const params = Astro.url.searchParams;
 const tipo = esTipo(params.get('tipo') ?? '') ? (params.get('tipo') as keyof typeof TIPOS) : undefined;
 const estadoParam = params.get('estado') ?? '';
@@ -64,48 +65,32 @@ const estadosFiltro = (['llamado', 'evaluacion', 'tramite', 'adjudicada', 'desie
     </div>
   </section>
 
-  <section aria-labelledby="titulo-abiertos" class="bg-papel">
-    <div class="contenedor py-9 sm:py-16">
-      <div class="grid gap-8 lg:grid-cols-[280px_1fr] lg:gap-16">
-        <div>
-          <h2 id="titulo-abiertos" class="text-[29px] leading-tight font-bold tracking-[-.035em] sm:text-[35px]">Llamados abiertos</h2>
-          <p class="mt-3 leading-relaxed text-gris">
-            Licitaciones públicas que reciben ofertas. El pliego y las circulares se descargan desde cada llamado.
-          </p>
-        </div>
-        <div class="self-start rounded-xl border border-linea bg-white px-5 sm:px-8">
-          {
-            abiertos.length > 0 ? (
-              abiertos.map((p) => <LlamadoAbierto p={p} />)
-            ) : (
-              <p class="py-8 text-gris">
-                No hay llamados abiertos en este momento. Cuando se abra uno nuevo va a aparecer acá con su fecha de apertura y el pliego.
+  {/* Sin llamados abiertos la sección no se muestra. */}
+  {
+    abiertos.length > 0 && (
+      <section aria-labelledby="titulo-abiertos" class="bg-papel">
+        <div class="contenedor py-9 sm:py-16">
+          <div class="grid gap-8 lg:grid-cols-[280px_1fr] lg:gap-16">
+            <div>
+              <h2 id="titulo-abiertos" class="text-[29px] leading-tight font-bold tracking-[-.035em] sm:text-[35px]">Llamados abiertos</h2>
+              <p class="mt-3 leading-relaxed text-gris">
+                Licitaciones públicas que reciben ofertas. El pliego y las circulares se descargan desde cada llamado.
               </p>
-            )
-          }
+            </div>
+            <div class="self-start rounded-xl border border-linea bg-white px-5 sm:px-8">
+              {abiertos.map((p) => <LlamadoAbierto p={p} />)}
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-  </section>
+      </section>
+    )
+  }
 
   <section aria-labelledby="titulo-listado">
     <div class="contenedor py-12 sm:py-16">
       <div class="flex flex-wrap items-end justify-between gap-4">
         <h2 id="titulo-listado" class="text-[29px] leading-tight font-bold tracking-[-.035em] sm:text-[35px]">Todos los procedimientos</h2>
-        <details class="group text-sm">
-          <summary class="cursor-pointer font-semibold text-marca hover:underline">¿Qué diferencia hay entre las modalidades?</summary>
-          <dl class="mt-4 grid max-w-[720px] gap-4 rounded-lg border border-linea bg-white p-5 text-[15px] leading-relaxed">
-            {
-              LISTA_TIPOS.map((t) => (
-                <div>
-                  <dt class="font-bold">{TIPOS[t].nombre}</dt>
-                  <dd class="text-gris">{modalidades[t]}</dd>
-                </div>
-              ))
-            }
-            {vigenciaMontos && <p class="text-[13px] text-gris">Montos vigentes desde {vigenciaMontos}.</p>}
-          </dl>
-        </details>
+        <Modalidades />
       </div>
 
       <form method="get" action="/#titulo-listado" class="mt-7 grid gap-3 rounded-lg bg-papel p-4 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr_auto]" data-filtros>

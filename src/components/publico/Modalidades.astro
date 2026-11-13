@@ -1,0 +1,84 @@
+---
+/**
+ * Botón y modal «¿Qué diferencia hay entre las modalidades?» del listado público.
+ * Abre con `commandfor` (sin JS en navegadores actuales); el script cubre a los que no lo soportan
+ * y cierra al tocar el fondo. Cada modalidad lleva a su listado filtrado.
+ */
+import Icono from '../ui/Icono.astro';
+import ayuda from '@tabler/icons/outline/help-circle.svg?raw';
+import cerrar from '@tabler/icons/outline/x.svg?raw';
+import flecha from '@tabler/icons/outline/arrow-right.svg?raw';
+import { LISTA_TIPOS, TIPOS } from '../../lib/estados';
+
+const { modalidades, vigenciaMontos } = Astro.locals.sitio;
+---
+
+<button
+  type="button"
+  commandfor="dlg-modalidades"
+  command="show-modal"
+  data-abrir-modalidades
+  class="inline-flex items-center gap-1.5 rounded-md py-1 text-sm font-semibold text-marca hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca"
+>
+  <Icono svg={ayuda} tamano={18} />
+  ¿Qué diferencia hay entre las modalidades?
+</button>
+
+<dialog
+  id="dlg-modalidades"
+  aria-labelledby="dlg-modalidades-titulo"
+  class="m-auto max-h-[calc(100dvh-32px)] w-[min(640px,calc(100%-32px))] rounded-xl bg-white p-0 text-tinta shadow-2xl backdrop:bg-tinta/40 open:animate-[aparecer_.16s_ease-out]"
+>
+  <div class="flex items-start justify-between gap-4 border-b border-linea px-6 pt-6 pb-4 sm:px-7">
+    <div>
+      <h2 id="dlg-modalidades-titulo" class="text-xl leading-snug font-bold tracking-[-.02em]">Modalidades de contratación</h2>
+    </div>
+    <button type="button" commandfor="dlg-modalidades" command="close" data-cerrar-modalidades class="btn-fantasma -mt-1 -mr-2 p-2" aria-label="Cerrar">
+      <Icono svg={cerrar} tamano={20} />
+    </button>
+  </div>
+
+  <ul class="space-y-3 px-6 py-5 sm:px-7">
+    {
+      LISTA_TIPOS.map((t) => (
+        <li class="rounded-lg border border-linea bg-papel/60 p-4">
+          <h3 class="font-bold">{TIPOS[t].nombre}</h3>
+          <p class="mt-1 text-[15px] leading-relaxed text-gris">{modalidades[t]}</p>
+          <a href={`/?tipo=${t}#titulo-listado`} class="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-marca hover:underline">
+            Ver solo {TIPOS[t].corto === 'Concurso' ? 'concursos de precios' : `licitaciones ${TIPOS[t].corto.toLowerCase()}s`}
+            <Icono svg={flecha} tamano={16} />
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+
+  <div class="flex flex-col-reverse gap-3 border-t border-linea px-6 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-7">
+    <p class="text-[13px] text-gris">{vigenciaMontos && `Montos vigentes desde ${vigenciaMontos}.`}</p>
+    <button type="button" commandfor="dlg-modalidades" command="close" data-cerrar-modalidades class="btn-primario">Entendido</button>
+  </div>
+</dialog>
+
+<style is:global>
+  @keyframes aparecer {
+    from {
+      opacity: 0;
+      transform: translateY(6px) scale(0.98);
+    }
+  }
+</style>
+
+<script>
+  const dialogo = document.querySelector<HTMLDialogElement>('#dlg-modalidades');
+  if (dialogo) {
+    // Navegadores sin Invoker Commands: abrir y cerrar a mano.
+    if (!('command' in HTMLButtonElement.prototype)) {
+      document.querySelector('[data-abrir-modalidades]')?.addEventListener('click', () => dialogo.showModal());
+      dialogo.querySelectorAll('[data-cerrar-modalidades]').forEach((b) => b.addEventListener('click', () => dialogo.close()));
+    }
+    // Tocar el fondo (fuera de la caja) cierra.
+    dialogo.addEventListener('click', (e) => {
+      if (e.target === dialogo) dialogo.close();
+    });
+  }
+</script>

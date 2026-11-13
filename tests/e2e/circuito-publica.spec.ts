@@ -118,6 +118,12 @@ test('licitación pública: borrador → llamado → prórroga → evaluación �
   await expect(invitados.getByRole('button', { name: /Proveedor invitado 2 SRL compró el pliego/ })).toContainText('Compró el pliego');
   await expect(invitados.getByText('Compró el pliego')).toHaveCount(1);
 
+  // Sin llamados abiertos, la portada no muestra la sección.
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'Todos los procedimientos' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Llamados abiertos' })).toHaveCount(0);
+  await page.goto(urlPanel);
+
   // Abrir el llamado: aparece en la portada.
   await cambiarEstado(page, 'Llamado abierto');
   await page.goto('/');
