@@ -74,7 +74,7 @@ test('licitación pública: borrador → llamado → prórroga → evaluación �
   await page.locator('#objeto').fill(objeto);
   await page.locator('#presupuestoOficial').fill('2000000');
   await page.locator('#valorPliego').fill('5000');
-  await page.locator('#lugarApertura').fill('Oficina de Compras, Salgado 40');
+  await page.locator('#lugarApertura').fill('Oficina de Compras, Palacio Municipal');
   await elegirFecha(page, diaLocal(7));
   await page.getByRole('button', { name: 'Crear borrador' }).click();
   await confirmar(page);

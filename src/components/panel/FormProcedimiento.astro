@@ -145,7 +145,7 @@ const todoBloqueado = [...reglas.camposModalidad].every((c) => c === 'observacio
       </div>
       <div data-solo="publica" hidden={solo(['publica'])}>
         <label for="lugarApertura" class="etiqueta">Lugar de apertura</label>
-        <input id="lugarApertura" name="lugarApertura" type="text" value={p?.lugarApertura ?? ''} placeholder="Ej. Oficina de Compras, Salgado 40" readonly={bloqueado('lugarApertura')} aria-describedby={nota('lugarApertura') ? 'n-lugar' : undefined} class={bloqueado('lugarApertura') ? 'campo cursor-not-allowed bg-papel text-gris' : 'campo'} data-etiqueta="Lugar de apertura" />
+        <input id="lugarApertura" name="lugarApertura" type="text" value={p?.lugarApertura ?? ''} placeholder="Ej. Oficina de Compras, Palacio Municipal" readonly={bloqueado('lugarApertura')} aria-describedby={nota('lugarApertura') ? 'n-lugar' : undefined} class={bloqueado('lugarApertura') ? 'campo cursor-not-allowed bg-papel text-gris' : 'campo'} data-etiqueta="Lugar de apertura" />
         {nota('lugarApertura') && <p id="n-lugar" class="ayuda">{nota('lugarApertura')}</p>}
       </div>
       {/* En el alta no se muestra: recién se carga cuando se abren las ofertas. */}
