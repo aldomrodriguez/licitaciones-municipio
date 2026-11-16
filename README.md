@@ -135,4 +135,6 @@ Cada push a `main` se despliega con **Redeploy** o, si está activado, automáti
 
 ## Licencia
 
+Copyright © 2026 Aldo Rodriguez.
+
 [AGPL-3.0-or-later](LICENSE). Se puede usar, modificar y desplegar libremente; si se ofrece una versión modificada como servicio, hay que publicar sus cambios con la misma licencia.
