@@ -20,7 +20,7 @@ beforeEach(() => {
 });
 
 describe('esHrefSeguro', () => {
-  it.each(['https://municipiodelobos.gob.ar/', 'http://localhost:4321/x', 'mailto:compras@municipio.gob.ar', 'tel:+542227431450'])('acepta %s', (h) => {
+  it.each(['https://www.municipio.gob.ar/', 'http://localhost:4321/x', 'mailto:compras@municipio.gob.ar', 'tel:+541140000000'])('acepta %s', (h) => {
     expect(esHrefSeguro(h)).toBe(true);
   });
   it.each(['javascript:alert(1)', 'JaVaScRiPt:alert(1)', 'data:text/html,<script>', 'vbscript:x', '/relativo', 'www.sin-protocolo.com', 'https://sinpunto', ''])('rechaza %s', (h) => {
@@ -73,18 +73,18 @@ describe('configuración', () => {
     expect(c.nav).toEqual([]);
   });
 
-  it('el ejemplo de Lobos es válido completo', () => {
-    const lobos = JSON.parse(readFileSync('ejemplos/lobos/configuracion.json', 'utf8')) as Partial<ConfigSitio>;
-    guardarSeccion(db, 'x', 'identidad', { nombre: lobos.nombre!, colores: lobos.colores! });
-    guardarSeccion(db, 'x', 'encabezado', { direccion: lobos.direccion!, sitioUrl: lobos.sitioUrl!, textoVolver: lobos.textoVolver!, migas: lobos.migas!, nav: lobos.nav!, destacado: lobos.destacado!, lema: lobos.lema!, columnas: lobos.columnas! });
-    guardarSeccion(db, 'x', 'textos', { queEs: lobos.queEs!, modalidades: lobos.modalidades!, vigenciaMontos: lobos.vigenciaMontos! });
-    expect(leerConfiguracion(db)).toMatchObject(lobos);
+  it('el ejemplo genérico es válido completo', () => {
+    const ejemplo = JSON.parse(readFileSync('ejemplos/generico/configuracion.json', 'utf8')) as Partial<ConfigSitio>;
+    guardarSeccion(db, 'x', 'identidad', { nombre: ejemplo.nombre!, colores: ejemplo.colores! });
+    guardarSeccion(db, 'x', 'encabezado', { direccion: ejemplo.direccion!, sitioUrl: ejemplo.sitioUrl!, textoVolver: ejemplo.textoVolver!, migas: ejemplo.migas!, nav: ejemplo.nav!, destacado: ejemplo.destacado!, lema: ejemplo.lema!, columnas: ejemplo.columnas! });
+    guardarSeccion(db, 'x', 'textos', { queEs: ejemplo.queEs!, modalidades: ejemplo.modalidades!, vigenciaMontos: ejemplo.vigenciaMontos! });
+    expect(leerConfiguracion(db)).toMatchObject(ejemplo);
   });
 });
 
 describe('letraDecorativa', () => {
   it('usa la inicial de la última palabra', () => {
-    expect(letraDecorativa('Municipio de Lobos')).toBe('L');
+    expect(letraDecorativa('Municipio de Ejemplo')).toBe('E');
     expect(letraDecorativa('Municipio')).toBe('M');
     expect(letraDecorativa('Municipalidad de General Paz')).toBe('P');
   });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { aFechaInput, desdeFechaInput, diaLobos, excesoPresupuesto, formatearMonto, montoAInput, parsearMonto } from './formato';
+import { aFechaInput, desdeFechaInput, diaLocal, excesoPresupuesto, formatearMonto, montoAInput, parsearMonto } from './formato';
 
 describe('parsearMonto', () => {
   it.each([
@@ -34,7 +34,7 @@ describe('formatos', () => {
     expect(parsearMonto(montoAInput(5639142327))).toBe(5639142327);
   });
 
-  it('la fecha de apertura es un día: se guarda al mediodía de Lobos', () => {
+  it('la fecha de apertura es un día: se guarda al mediodía en hora argentina', () => {
     const d = desdeFechaInput('2026-10-14');
     expect(d?.toISOString()).toBe('2026-10-14T15:00:00.000Z');
     expect(aFechaInput(d)).toBe('2026-10-14');
@@ -42,9 +42,9 @@ describe('formatos', () => {
     expect(desdeFechaInput('2026-02-31')).toBeNull();
   });
 
-  it('el día en Lobos no se corre por la zona horaria', () => {
-    expect(diaLobos(new Date('2026-10-15T02:30:00Z'))).toBe('2026-10-14');
-    expect(diaLobos(new Date('2026-10-15T03:00:00Z'))).toBe('2026-10-15');
+  it('el día local no se corre por la zona horaria', () => {
+    expect(diaLocal(new Date('2026-10-15T02:30:00Z'))).toBe('2026-10-14');
+    expect(diaLocal(new Date('2026-10-15T03:00:00Z'))).toBe('2026-10-15');
   });
 });
 

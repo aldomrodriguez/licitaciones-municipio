@@ -1,0 +1,37 @@
+{
+  "procedimientos": [
+    {
+      "tipo": "publica",
+      "numero": 3,
+      "anio": 2025,
+      "objeto": "Adquisición de luminarias LED para el alumbrado público",
+      "estado": "adjudicada",
+      "presupuestoOficial": 4500000000,
+      "valorPliego": 4500000,
+      "fechaApertura": "2025-06-12",
+      "cantidadOfertantes": 4,
+      "adjudicaciones": [{ "proveedor": "Luminotecnia del Sur S.R.L.", "monto": 4380000000 }],
+      "documentos": [
+        { "url": "https://www.municipio.gob.ar/licitaciones/publica-3-2025-pliego.pdf", "titulo": "Pliego de bases y condiciones", "categoria": "Pliego de bases y condiciones" }
+      ]
+    },
+    {
+      "tipo": "privada",
+      "numero": 8,
+      "anio": 2025,
+      "objeto": "Contratación del servicio de mantenimiento de espacios verdes",
+      "estado": "tramite",
+      "presupuestoOficial": 9000000000,
+      "invitados": 6,
+      "advertencias": ["En la publicación anterior no figuraba la fecha de apertura."]
+    },
+    {
+      "tipo": "concurso",
+      "numero": 2,
+      "anio": 2024,
+      "objeto": "Adquisición de indumentaria de trabajo",
+      "estado": "anulada",
+      "motivoEstado": "Se anuló por falta de ofertas válidas."
+    }
+  ]
+}

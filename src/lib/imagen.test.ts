@@ -4,7 +4,7 @@ import { leerImagen } from './imagen';
 
 describe('leerImagen', () => {
   it('lee el PNG del logo de ejemplo', () => {
-    expect(leerImagen(new Uint8Array(readFileSync('ejemplos/lobos/logo.png')))).toEqual({ tipo: 'png', ancho: 520, alto: 306 });
+    expect(leerImagen(new Uint8Array(readFileSync('ejemplos/generico/logo.png')))).toEqual({ tipo: 'png', ancho: 520, alto: 306 });
   });
   it('lee un JPEG (marcador SOF0)', () => {
     const jpg = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x04, 0x00, 0x00, 0xff, 0xc0, 0x00, 0x11, 0x08, 0x00, 0x40, 0x00, 0x80, 0x03, 0, 0, 0, 0]);

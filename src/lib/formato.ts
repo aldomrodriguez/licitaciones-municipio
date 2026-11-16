@@ -79,29 +79,29 @@ export function formatearFechaHora(d: Date | null | undefined): string {
 }
 
 /**
- * La fecha de apertura es un día, sin hora. Se guarda como el mediodía de ese día en Lobos:
+ * La fecha de apertura es un día, sin hora. Se guarda como el mediodía de ese día en hora argentina (UTC-3):
  * así ningún cambio de zona horaria la mueve al día anterior o siguiente.
  */
 export function desdeFechaInput(valor: string | null | undefined): Date | null {
   if (!valor || !/^\d{4}-\d{2}-\d{2}$/.test(valor)) return null;
   const d = new Date(`${valor}T12:00:00${OFFSET}`);
-  if (Number.isNaN(d.getTime()) || diaLobos(d) !== valor) return null; // descarta 2026-02-31
+  if (Number.isNaN(d.getTime()) || diaLocal(d) !== valor) return null; // descarta 2026-02-31
   return d;
 }
 
-/** Date → "2026-10-14" (día en Lobos), para el selector de fecha. */
+/** Date → "2026-10-14" (día en hora argentina), para el selector de fecha. */
 export function aFechaInput(d: Date | null | undefined): string {
-  return d ? diaLobos(d) : '';
+  return d ? diaLocal(d) : '';
 }
 
-/** Día calendario en Lobos, "AAAA-MM-DD" (comparable como texto). */
-export function diaLobos(d: Date): string {
+/** Día calendario en hora argentina (UTC-3), "AAAA-MM-DD" (comparable como texto). */
+export function diaLocal(d: Date): string {
   return new Date(d.getTime() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
 }
 
-/** Inicio del día de hoy en Lobos (para «apertura hoy o después»). */
+/** Inicio del día de hoy en hora argentina (para «apertura hoy o después»). */
 export function inicioDelDia(d = new Date()): Date {
-  return new Date(`${diaLobos(d)}T00:00:00${OFFSET}`);
+  return new Date(`${diaLocal(d)}T00:00:00${OFFSET}`);
 }
 
 export function formatearTamano(bytes: number): string {
@@ -112,7 +112,7 @@ export function formatearTamano(bytes: number): string {
 
 const DIA_MS = 24 * 60 * 60 * 1000;
 
-/** Días calendario (hora de Lobos) entre hoy y la fecha. */
+/** Días calendario (hora argentina) entre hoy y la fecha. */
 export function diasHasta(fecha: Date, ahora = new Date()): number {
   const dia = (d: Date) => Math.floor((d.getTime() - 3 * 60 * 60 * 1000) / DIA_MS);
   return dia(fecha) - dia(ahora);

@@ -9,7 +9,7 @@ import alerta from '@tabler/icons/outline/alert-triangle.svg?raw';
 import { db } from '../../lib/db';
 import { aniosDisponibles, listarPanel } from '../../lib/procedimientos';
 import { ESTADOS, LISTA_TIPOS, TIPOS, esEstado, esTipo, type Estado } from '../../lib/estados';
-import { diaLobos, formatearFecha, formatearMonto } from '../../lib/formato';
+import { diaLocal, formatearFecha, formatearMonto } from '../../lib/formato';
 import { LISTA_REGLAS, REGLAS_ATENCION, esReglaAtencion, idsConPliego, reglasQueAplican } from '../../lib/atencion';
 import { urlPanel } from '../../lib/rutas';
 import { paginar } from '../../lib/paginacion';
@@ -27,7 +27,7 @@ const atencion = esReglaAtencion(atencionP) ? atencionP : undefined;
 
 const conexion = db();
 const conPliego = idsConPliego(conexion);
-const hoy = diaLobos(new Date());
+const hoy = diaLocal(new Date());
 const filtrados = listarPanel(conexion, { tipo, estado, anio, q });
 const reglasDe = (f: (typeof filtrados)[number]) => reglasQueAplican(f.p, conPliego.has(f.p.id), hoy);
 const filas = atencion ? filtrados.filter((f) => reglasDe(f).includes(atencion)) : filtrados;

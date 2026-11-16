@@ -46,7 +46,7 @@ test('configuración del sitio: identidad, logo, header y registro', async ({ pa
 
   // Logo: vista previa, confirmación y subida.
   const logo = page.locator('[data-imagen-marca][data-clase="logo"]');
-  await logo.locator('[data-elegir]').setInputFiles('ejemplos/lobos/logo.png');
+  await logo.locator('[data-elegir]').setInputFiles('ejemplos/generico/logo.png');
   await expect(logo.locator('[data-vista]')).toBeVisible();
   await logo.getByRole('button', { name: 'Usar esta imagen' }).click();
   await confirmar(page);
@@ -87,7 +87,7 @@ test('configuración del sitio: identidad, logo, header y registro', async ({ pa
   expect(src).toMatch(/^\/marca\/logo-[\w-]+\.png$/);
   const imagen = await page.request.get(src!);
   expect(imagen.headers()['content-type']).toBe('image/png');
-  expect(Buffer.from(await imagen.body()).equals(readFileSync('ejemplos/lobos/logo.png'))).toBe(true);
+  expect(Buffer.from(await imagen.body()).equals(readFileSync('ejemplos/generico/logo.png'))).toBe(true);
   const color = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--color-marca').trim());
   expect(color).toBe('#0f6b5c');
   await expect(page.locator('footer')).toContainText('Municipio de Prueba');

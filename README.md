@@ -1,16 +1,34 @@
 # Licitaciones municipales
 
-Micrositio público de licitaciones, licitaciones privadas y concursos de precios, con un panel de carga para el área de Compras. La identidad del municipio (nombre, colores, logo, header, footer y textos) se configura desde el panel.
+Micrositio público de licitaciones, licitaciones privadas y concursos de precios, con un panel de carga para el área de Compras. La identidad del municipio (nombre, colores, logo, header, footer y textos) se configura desde el panel: el código no tiene nada de un municipio en particular.
 
 **Stack:** Astro (SSR, Node) · TypeScript · Tailwind · SQLite. Todo el estado (base, documentos, logo) vive en una sola carpeta: `DATA_DIR`.
 
+La arquitectura, las reglas de cada etapa y las decisiones de seguridad están en [`docs/arquitectura.md`](docs/arquitectura.md).
+
+## Qué incluye
+
+- Sitio público con llamados abiertos, buscador y ficha de cada procedimiento con sus documentos.
+- Panel para Compras: carga por etapas (borrador, llamado, evaluación o trámite, cierre), invitados, ofertas, adjudicatarios y documentos, con confirmación en cada acción e historial público de cambios.
+- Usuarios con rol de administrador o de Compras, papelera y backups diarios.
+
 ## Desarrollo local
+
+Requiere Node 22.23 o superior y pnpm.
 
 ```bash
 pnpm install
 pnpm dev                    # http://localhost:4321 (crea ./data/licitaciones.db y migra solo)
 pnpm crear-admin "Nombre Apellido" persona@municipio.gob.ar
+pnpm configurar ejemplos/generico   # opcional: carga una identidad de ejemplo
 ```
+
+## Adaptarlo a tu municipio
+
+1. **Identidad.** Completar `/panel/configuracion` o copiar `ejemplos/generico/` a una carpeta propia, cambiar `configuracion.json`, `logo.png` y `favicon.png` (PNG, JPG o WebP; SVG no) y correr `pnpm configurar <carpeta>`. Los colores necesitan contraste de al menos 4.5:1 con blanco.
+2. **Montos y modalidades.** Los textos de cada modalidad y la vigencia de los montos son parte de la configuración. El circuito de estados y los mínimos de invitados están en `src/lib/estados.ts`, con sus tests.
+3. **Procedimientos anteriores (opcional).** Armar un JSON con el formato de `ejemplos/importacion.json` (montos en centavos, fechas `AAAA-MM-DD`, documentos por URL) y correr `pnpm importar archivo.json`. Sin `--aplicar` solo genera un reporte en `data/reporte-importacion.md`; con `--aplicar` importa y baja los documentos. Se puede repetir sin duplicar.
+4. **Zona horaria.** Las fechas se manejan en hora argentina (UTC-3 fija, `src/lib/formato.ts`).
 
 Verificación antes de subir cambios:
 
@@ -66,8 +84,8 @@ La imagen de producción no trae `tsx` ni los scripts TypeScript (`importar`, `c
 
 ```bash
 # En local
-pnpm configurar ejemplos/lobos      # o la carpeta con la configuración de tu municipio
-pnpm importar --aplicar             # si corresponde: importa informacion.html y baja los PDFs
+pnpm configurar <carpeta>           # la configuración de tu municipio
+pnpm importar archivo.json --aplicar   # si corresponde: procedimientos anteriores y sus documentos
 pnpm crear-admin "Nombre Apellido" persona@municipio.gob.ar
 pnpm astro dev stop                 # que nada esté escribiendo en la base
 ```
@@ -114,3 +132,7 @@ Cada push a `main` se despliega con **Redeploy** o, si está activado, automáti
 | Los datos desaparecen después de un deploy | Falta el volumen en `/data`. |
 | La app no arranca después de subir `data/` | Los archivos no son del usuario `node`: falta el `chown` del paso 5. |
 | No puedo entrar y no hay otro admin | Con la app detenida, bajar la `licitaciones.db` **del servidor** (no usar una copia local vieja: se perderían los cambios de producción), restablecer la contraseña con `DATA_DIR=<carpeta> pnpm crear-admin "Nombre" email` (si el email existe, solo le cambia la contraseña), volver a subirla y arrancar. Mejor tener siempre dos administradores. |
+
+## Licencia
+
+[AGPL-3.0-or-later](LICENSE). Se puede usar, modificar y desplegar libremente; si se ofrece una versión modificada como servicio, hay que publicar sus cambios con la misma licencia.

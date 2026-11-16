@@ -5,7 +5,7 @@ describe('contraste', () => {
   it('blanco contra negro es 21:1', () => {
     expect(contraste('#ffffff', '#000000')).toBeCloseTo(21, 1);
   });
-  it('el rojo de Lobos con blanco pasa AA', () => {
+  it('un rojo institucional con blanco pasa AA', () => {
     expect(contraste('#d52027', '#ffffff')).toBeGreaterThan(4.5);
   });
 });

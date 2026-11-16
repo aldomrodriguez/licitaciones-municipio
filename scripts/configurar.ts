@@ -1,10 +1,10 @@
 /**
- * Carga la configuración del sitio desde una carpeta (ver ejemplos/lobos):
+ * Carga la configuración del sitio desde una carpeta (ver ejemplos/generico):
  *   configuracion.json   campos de la configuración (los que falten quedan como están)
  *   logo.png|jpg|webp    opcional
  *   favicon.png|jpg|webp opcional, cuadrado
  *
- *   pnpm configurar ejemplos/lobos
+ *   pnpm configurar ejemplos/generico
  *
  * Es lo mismo que completar /panel/configuracion, pero de una vez. Queda en el registro
  * de cambios como «Configuración inicial».
@@ -17,7 +17,7 @@ import { borrarImagenMarca, guardarImagenMarca, type ClaseImagen } from '../src/
 
 const carpeta = process.argv[2];
 if (!carpeta) {
-  console.error('Uso: pnpm configurar <carpeta>   (ej. pnpm configurar ejemplos/lobos)');
+  console.error('Uso: pnpm configurar <carpeta>   (ej. pnpm configurar ejemplos/generico)');
   process.exit(1);
 }
 const raiz = resolve(carpeta);

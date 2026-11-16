@@ -1,0 +1,49 @@
+{
+  "nombre": "Municipio de Ejemplo",
+  "direccion": "Av. San Martín 100, Ciudad de Ejemplo",
+  "sitioUrl": "https://www.municipio.gob.ar/",
+  "textoVolver": "Volver al sitio del Municipio",
+  "colores": {
+    "marca": "#1d4ed8",
+    "oscuro": "#173eab",
+    "claro": "#edf1fc",
+    "sobreOscuro": "#6183e4",
+    "sobreMarca": "#e8edfb"
+  },
+  "migas": [
+    { "texto": "Inicio", "href": "https://www.municipio.gob.ar/" },
+    { "texto": "Municipio", "href": "https://www.municipio.gob.ar/municipio" }
+  ],
+  "nav": [
+    { "texto": "Servicios", "href": "https://www.municipio.gob.ar/servicios" },
+    { "texto": "Municipio", "href": "https://www.municipio.gob.ar/municipio" },
+    { "texto": "Contacto", "href": "https://www.municipio.gob.ar/contacto" }
+  ],
+  "destacado": { "texto": "Trámites online", "href": "https://tramites.municipio.gob.ar/" },
+  "lema": "Información pública de las compras y contrataciones del Municipio.",
+  "columnas": [
+    {
+      "titulo": "Municipio",
+      "textos": [],
+      "links": [
+        { "texto": "Autoridades", "href": "https://www.municipio.gob.ar/municipio#autoridades" },
+        { "texto": "Transparencia", "href": "https://www.municipio.gob.ar/transparencia" }
+      ]
+    },
+    {
+      "titulo": "Contacto",
+      "textos": ["Av. San Martín 100, Ciudad de Ejemplo"],
+      "links": [
+        { "texto": "(011) 4000-0000", "href": "tel:+541140000000" },
+        { "texto": "compras@municipio.gob.ar", "href": "mailto:compras@municipio.gob.ar" }
+      ]
+    }
+  ],
+  "queEs": "La licitación es el proceso administrativo por el cual el Municipio adquiere bienes y contrata servicios, seleccionando entre las propuestas de los proveedores la más conveniente según precio, plazos y calidad.",
+  "modalidades": {
+    "publica": "Se publica formalmente en el Boletín Oficial y en medios locales para garantizar la difusión. Corresponde a las compras de mayor monto.",
+    "privada": "No requiere publicación oficial del llamado: se invita a proveedores. Corresponde a las compras de monto intermedio.",
+    "concurso": "Para contrataciones de menor monto: se solicitan presupuestos a un grupo de proveedores invitados."
+  },
+  "vigenciaMontos": ""
+}

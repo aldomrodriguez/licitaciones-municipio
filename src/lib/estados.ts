@@ -6,7 +6,7 @@
  */
 import type { Tipo } from './db/schema';
 import { CATEGORIAS, type Categoria } from './categorias';
-import { diaLobos } from './formato';
+import { diaLocal } from './formato';
 
 export const TIPOS = {
   publica: { nombre: 'Licitación Pública', corto: 'Pública', slug: 'publica' },
@@ -183,7 +183,7 @@ export function validarTransicion(
   }
   if (destino === 'llamado' && !datos.fechaApertura) {
     errores.push('Para abrir el llamado hay que cargar la fecha de apertura.');
-  } else if (destino === 'llamado' && datos.fechaApertura && diaLobos(datos.fechaApertura) < diaLobos(ahora)) {
+  } else if (destino === 'llamado' && datos.fechaApertura && diaLocal(datos.fechaApertura) < diaLocal(ahora)) {
     errores.push('La fecha de apertura ya pasó: corregila antes de abrir el llamado.');
   }
   // El mínimo se exige al salir del borrador: los importados y las reaperturas no lo vuelven a pedir.
@@ -224,7 +224,7 @@ export function consecuencias(
     out.push('Aparecerá destacado en «Llamados abiertos» hasta la fecha de apertura.');
     out.push('Después ya no se pueden cambiar el número ni el año (forman la dirección pública).');
   }
-  if (destino === 'evaluacion' && !correccion && datos.fechaApertura && diaLobos(datos.fechaApertura) > diaLobos(ahora)) {
+  if (destino === 'evaluacion' && !correccion && datos.fechaApertura && diaLocal(datos.fechaApertura) > diaLocal(ahora)) {
     out.push('Atención: la fecha de apertura cargada todavía no llegó. Si se adelantó, corregí la fecha.');
   }
   if (ESTADOS[destino].final) {

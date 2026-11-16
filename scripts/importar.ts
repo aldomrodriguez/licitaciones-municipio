@@ -1,9 +1,10 @@
 /**
- * Importa los procedimientos de la página anterior (informacion.html).
+ * Importa procedimientos anteriores al sistema desde un JSON (formato en scripts/importar/formato.ts,
+ * ejemplo en ejemplos/importacion.json).
  *
- *   pnpm importar                 → simulación: solo genera el reporte, no toca la base
- *   pnpm importar --aplicar       → importa y baja los PDFs de lobos.gov.ar
- *   pnpm importar --aplicar --sin-documentos
+ *   pnpm importar <archivo.json>                    → simulación: solo genera el reporte, no toca la base
+ *   pnpm importar <archivo.json> --aplicar          → importa y baja los documentos de sus URLs
+ *   pnpm importar <archivo.json> --aplicar --sin-documentos
  *
  * Los que ya existen (mismo tipo/número/año) se saltean: se puede correr de nuevo sin duplicar.
  */
@@ -14,13 +15,18 @@ import { DATA_DIR, db } from '../src/lib/db';
 import { adjudicaciones, documentos, historial, procedimientos } from '../src/lib/db/schema';
 import { ESTADOS, TIPOS } from '../src/lib/estados';
 import { guardarArchivo } from '../src/lib/archivos';
-import { parsearInformacion, revisarConjunto, type Importado } from './importar/parser';
+import { leerImportacion, revisarConjunto, type Importado } from './importar/formato';
 
 const args = new Set(process.argv.slice(2));
 const APLICAR = args.has('--aplicar');
 const CON_DOCUMENTOS = !args.has('--sin-documentos');
-const ORIGEN = process.argv.find((a) => a.endsWith('.html')) ?? 'informacion.html';
-const ACTOR = 'Importación desde la página anterior';
+const ORIGEN = process.argv.slice(2).find((a) => !a.startsWith('--'));
+const ACTOR = 'Importación inicial';
+
+if (!ORIGEN) {
+  console.error('Uso: pnpm importar <archivo.json> [--aplicar] [--sin-documentos]   (ej. pnpm importar ejemplos/importacion.json)');
+  process.exit(1);
+}
 
 async function bajar(url: string): Promise<File> {
   const r = await fetch(url, { redirect: 'follow' });
@@ -34,8 +40,7 @@ function nombre(it: Pick<Importado, 'tipo' | 'numero' | 'anio'>) {
 }
 
 async function main() {
-  const html = await readFile(ORIGEN, 'utf8');
-  const items = parsearInformacion(html);
+  const { items, errores } = leerImportacion(await readFile(ORIGEN!, 'utf8'));
   const avisosGenerales = revisarConjunto(items);
   const conexion = db();
   const vistos = new Set<string>();
@@ -97,7 +102,7 @@ async function main() {
           usuarioNombre: ACTOR,
           accion: 'creado',
           valorNuevo: `${nombre(it)}, estado ${ESTADOS[it.estado].nombre}`,
-          motivo: 'Cargado desde la página de licitaciones anterior.',
+          motivo: 'Cargado desde la publicación anterior al sistema.',
         })
         .run();
       return id;
@@ -119,9 +124,10 @@ async function main() {
   const reporte = [
     `# Reporte de importación (${APLICAR ? 'aplicada' : 'simulación'})`,
     '',
-    `Origen: \`${ORIGEN}\` · ${items.length} registros leídos · ${creados} ${APLICAR ? 'importados' : 'a importar'} · ${salteados} ya existían.`,
+    `Origen: \`${ORIGEN}\` · ${items.length} registros válidos · ${errores.length} rechazados · ${creados} ${APLICAR ? 'importados' : 'a importar'} · ${salteados} ya existían.`,
     APLICAR && CON_DOCUMENTOS ? `Documentos descargados: ${docsOk}. Fallidos: ${fallidos.length}.` : '',
     '',
+    ...(errores.length ? ['## Registros rechazados (no se importan)', '', ...errores.map((e) => `- ${e}`), ''] : []),
     '## Para revisar con Compras',
     '',
     ...avisosGenerales.map((a) => `- ${a}`),

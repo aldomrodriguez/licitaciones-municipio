@@ -241,7 +241,7 @@ export function cambiosRecientes(db: Db, limite = 30) {
 
 // ─── Derivados para las plantillas ───────────────────────────────────────────
 
-/** Letra grande decorativa de la portada: la inicial de la última palabra del nombre («Lobos» → L). */
+/** Letra grande decorativa de la portada: la inicial de la última palabra del nombre («Municipio de Ejemplo» → E). */
 export function letraDecorativa(nombre: string): string {
   const palabras = nombre.trim().split(/\s+/);
   return (palabras.at(-1)?.[0] ?? 'M').toUpperCase();

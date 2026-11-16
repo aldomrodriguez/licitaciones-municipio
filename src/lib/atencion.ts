@@ -1,11 +1,11 @@
 /**
  * «Requieren atención»: procedimientos que probablemente están trabados o incompletos.
- * Las reglas son orientativas (no bloquean nada) y se calculan sobre el día de Lobos.
+ * Las reglas son orientativas (no bloquean nada) y se calculan sobre el día en hora argentina.
  */
 import { and, eq, isNull } from 'drizzle-orm';
 import type { Db } from './db';
 import { documentos, type Procedimiento } from './db/schema';
-import { diaLobos } from './formato';
+import { diaLocal } from './formato';
 
 export const DIAS_DEMORA_EVALUACION = 90;
 export const DIAS_BORRADOR_OLVIDADO = 30;
@@ -43,23 +43,23 @@ export function esReglaAtencion(v: string): v is ReglaAtencion {
 const DIA_MS = 24 * 60 * 60 * 1000;
 const sumarDias = (d: Date, dias: number) => new Date(d.getTime() + dias * DIA_MS);
 
-/** Reglas que cumple un procedimiento. `hoy` es el día de Lobos (AAAA-MM-DD). */
+/** Reglas que cumple un procedimiento. `hoy` es el día en hora argentina (AAAA-MM-DD). */
 export function reglasQueAplican(
   p: Pick<Procedimiento, 'estado' | 'fechaApertura' | 'creadoEn'>,
   tienePliego: boolean,
   hoy: string,
 ): ReglaAtencion[] {
   const reglas: ReglaAtencion[] = [];
-  const apertura = p.fechaApertura ? diaLobos(p.fechaApertura) : null;
+  const apertura = p.fechaApertura ? diaLocal(p.fechaApertura) : null;
   if (p.estado === 'llamado') {
     if (apertura && apertura < hoy) reglas.push('llamado-vencido');
     if (!tienePliego) reglas.push('llamado-sin-pliego');
   }
   if (p.estado === 'evaluacion' && apertura && apertura > hoy) reglas.push('apertura-futura');
-  if ((p.estado === 'evaluacion' || p.estado === 'tramite') && p.fechaApertura && diaLobos(sumarDias(p.fechaApertura, DIAS_DEMORA_EVALUACION)) < hoy) {
+  if ((p.estado === 'evaluacion' || p.estado === 'tramite') && p.fechaApertura && diaLocal(sumarDias(p.fechaApertura, DIAS_DEMORA_EVALUACION)) < hoy) {
     reglas.push('evaluacion-demorada');
   }
-  if (p.estado === 'borrador' && diaLobos(sumarDias(p.creadoEn, DIAS_BORRADOR_OLVIDADO)) < hoy) reglas.push('borrador-olvidado');
+  if (p.estado === 'borrador' && diaLocal(sumarDias(p.creadoEn, DIAS_BORRADOR_OLVIDADO)) < hoy) reglas.push('borrador-olvidado');
   return reglas;
 }
 

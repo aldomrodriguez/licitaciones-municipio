@@ -3,8 +3,8 @@ import type { Page } from '@playwright/test';
 import { expect, test } from './fixtures';
 import { ADMIN } from '../../playwright.config';
 
-/** AAAA-MM-DD en hora de Lobos (UTC-3), `dias` desde hoy. */
-function diaLobos(dias = 0): string {
+/** AAAA-MM-DD en hora argentina (UTC-3), `dias` desde hoy. */
+function diaLocal(dias = 0): string {
   return new Date(Date.now() - 3 * 3600_000 + dias * 86400_000).toISOString().slice(0, 10);
 }
 
@@ -63,7 +63,7 @@ async function agregarInvitado(page: Page, proveedor: string) {
 }
 
 test('licitación pública: borrador → llamado → prórroga → evaluación → adjudicada', async ({ page }) => {
-  const anio = Number(diaLobos().slice(0, 4));
+  const anio = Number(diaLocal().slice(0, 4));
   const objeto = `Adquisición de luminarias LED para prueba E2E ${Date.now()}`;
   const urlPublica = `/publica/${anio}/1`;
 
@@ -75,7 +75,7 @@ test('licitación pública: borrador → llamado → prórroga → evaluación �
   await page.locator('#presupuestoOficial').fill('2000000');
   await page.locator('#valorPliego').fill('5000');
   await page.locator('#lugarApertura').fill('Oficina de Compras, Salgado 40');
-  await elegirFecha(page, diaLobos(7));
+  await elegirFecha(page, diaLocal(7));
   await page.getByRole('button', { name: 'Crear borrador' }).click();
   await confirmar(page);
   await page.waitForURL(/\/panel\/procedimientos\/\d+$/);
@@ -142,7 +142,7 @@ test('licitación pública: borrador → llamado → prórroga → evaluación �
 
   // 5. Prórroga: mover la fecha con el llamado abierto queda en la línea de tiempo pública.
   await page.goto(urlPanel);
-  await elegirFecha(page, diaLobos(14));
+  await elegirFecha(page, diaLocal(14));
   await page.getByRole('button', { name: 'Guardar cambios' }).first().click();
   await expect(page.locator('#dlg-lista')).toContainText(/fecha de apertura/i);
   await confirmar(page);
@@ -153,19 +153,19 @@ test('licitación pública: borrador → llamado → prórroga → evaluación �
   // 6. Evaluación y dos adjudicatarios; el total se calcula.
   await page.goto(urlPanel);
   await cambiarEstado(page, 'En evaluación');
-  await agregarAdjudicatario(page, 'Luminotecnia Lobos SRL', '20123456786', '1500000,50');
+  await agregarAdjudicatario(page, 'Luminotecnia del Sur SRL', '20123456786', '1500000,50');
   await agregarAdjudicatario(page, 'Eléctrica del Salado SA', '30712345671', '250000');
 
   // Antes de adjudicar, los adjudicatarios no se publican.
   await page.goto(urlPublica);
-  await expect(page.locator('main')).not.toContainText('Luminotecnia Lobos SRL');
+  await expect(page.locator('main')).not.toContainText('Luminotecnia del Sur SRL');
 
   // 7. Adjudicar: se publican con el total.
   await page.goto(urlPanel);
   await cambiarEstado(page, 'Adjudicada');
   await page.goto(urlPublica);
   const main = page.locator('main');
-  await expect(main).toContainText('Luminotecnia Lobos SRL');
+  await expect(main).toContainText('Luminotecnia del Sur SRL');
   await expect(main).toContainText('Eléctrica del Salado SA');
   await expect(main).toContainText('1.750.000,50');
 });
