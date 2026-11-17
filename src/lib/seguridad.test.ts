@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { destinoDespuesDeLogin, jsonParaScript } from './seguridad';
+import { destinoDespuesDeLogin, ipCliente, jsonParaScript } from './seguridad';
 import { LimiteIntentos, textoEspera } from './limite-intentos';
 
 describe('jsonParaScript', () => {
@@ -77,5 +77,36 @@ describe('LimiteIntentos', () => {
   it('el aviso dice cuántos minutos faltan', () => {
     expect(textoEspera(30_000)).toContain('1 minuto.');
     expect(textoEspera(14 * 60_000 + 1)).toContain('15 minutos');
+  });
+});
+
+describe('ipCliente', () => {
+  const proxy = '172.70.1.1';
+  const con = (valor: string) => new Headers({ 'cf-connecting-ip': valor });
+
+  it('sin la variable configurada, ignora la cabecera (alguien podría falsificarla)', () => {
+    expect(ipCliente(con('200.45.1.10'), proxy, undefined)).toBe(proxy);
+    expect(ipCliente(con('200.45.1.10'), proxy, '  ')).toBe(proxy);
+  });
+
+  it('con la variable, toma la IP real que manda el proxy (IPv4 e IPv6)', () => {
+    expect(ipCliente(con('200.45.1.10'), proxy, 'cf-connecting-ip')).toBe('200.45.1.10');
+    expect(ipCliente(con('2800:810:4a1::1'), proxy, 'CF-Connecting-IP')).toBe('2800:810:4a1::1');
+  });
+
+  it('si la cabecera falta o no parece una IP, vuelve a la dirección de la conexión', () => {
+    expect(ipCliente(new Headers(), proxy, 'cf-connecting-ip')).toBe(proxy);
+    expect(ipCliente(con('1.1.1.1, 2.2.2.2'), proxy, 'cf-connecting-ip')).toBe(proxy);
+    expect(ipCliente(con('<script>'), proxy, 'cf-connecting-ip')).toBe(proxy);
+    expect(ipCliente(con('x'.repeat(200)), proxy, 'cf-connecting-ip')).toBe(proxy);
+  });
+
+  it('dos visitantes detrás del mismo proxy tienen límites separados', () => {
+    const l = new LimiteIntentos();
+    const a = ipCliente(con('200.45.1.10'), proxy, 'cf-connecting-ip');
+    const b = ipCliente(con('181.10.2.20'), proxy, 'cf-connecting-ip');
+    for (let i = 0; i < 40; i++) l.registrarFallo(a, `persona${i}@municipio.gob.ar`);
+    expect(l.espera(a, 'otra@municipio.gob.ar')).toBeGreaterThan(0);
+    expect(l.espera(b, 'otra@municipio.gob.ar')).toBe(0);
   });
 });

@@ -67,6 +67,8 @@ La app se despliega como una imagen Docker (`Dockerfile` del repo) con un volume
 | `ADMIN_EMAIL` | email del primer administrador | Solo si la base arranca vacía. |
 | `ADMIN_CLAVE` | contraseña de al menos 10 caracteres | Solo si la base arranca vacía. **Borrarla después del primer arranque.** |
 | `ADMIN_NOMBRE` | nombre del primer administrador | Opcional. |
+| `CABECERA_IP_CLIENTE` | `cf-connecting-ip` | **Solo si el sitio está detrás de Cloudflare** (u otro proxy que mande la IP real) y no se puede entrar directo al servidor. Sin esto, el límite de intentos de login cuenta a todos los visitantes como si fueran uno. |
+| `DATA_DIR` | no definirla | La imagen ya usa `/data`, que es el volumen. Si Coolify la toma del `.env.example`, que quede en `/data`. |
 
 > **`SITE_URL` como variable de build es obligatoria.** El dominio queda fijo al compilar (canonical, sitemap y protección CSRF del login). Si la imagen se compila con otro dominio, el sitio funciona pero **el login responde 403**.
 

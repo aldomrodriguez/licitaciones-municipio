@@ -4,7 +4,7 @@ import { db } from '../../lib/db';
 import { guardarCookie, iniciarSesion } from '../../lib/auth';
 import { altoPara, urlImagen } from '../../lib/configuracion';
 import Cabeza from '../../components/marca/Cabeza.astro';
-import { destinoDespuesDeLogin } from '../../lib/seguridad';
+import { destinoDespuesDeLogin, ipCliente } from '../../lib/seguridad';
 import { limiteLogin, textoEspera } from '../../lib/limite-intentos';
 
 const volver = destinoDespuesDeLogin(Astro.url.searchParams.get('volver'));
@@ -14,7 +14,7 @@ let email = '';
 if (Astro.request.method === 'POST') {
   const datos = await Astro.request.formData();
   email = String(datos.get('email') ?? '');
-  const ip = Astro.clientAddress;
+  const ip = ipCliente(Astro.request.headers, Astro.clientAddress);
   // El límite se chequea antes de verificar la clave: así un ataque no consume CPU con argon2.
   const espera = limiteLogin.espera(ip, email);
   if (espera > 0) {

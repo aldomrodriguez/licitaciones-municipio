@@ -49,3 +49,20 @@ export function excedeTamano(request: Request, maximo: number): boolean {
 
 /** Margen para los campos y separadores del formulario multipart. */
 export const MARGEN_FORMULARIO = 64 * 1024;
+
+const PARECE_IP = /^(?:\d{1,3}(?:\.\d{1,3}){3}|[0-9a-f:]{2,39})$/i;
+
+/**
+ * IP del visitante, para limitar intentos de login.
+ *
+ * Detrás de un proxy como Cloudflare, `clientAddress` es la IP del proxy: todos los visitantes
+ * compartirían el mismo límite. Si `CABECERA_IP_CLIENTE` nombra la cabecera donde el proxy manda
+ * la IP real (en Cloudflare, `cf-connecting-ip`), se usa esa. Solo hay que configurarla si **todo**
+ * el tráfico pasa por ese proxy: si no, cualquiera podría mandar la cabecera y elegir su IP.
+ */
+export function ipCliente(headers: Headers, direccion: string, cabecera = process.env.CABECERA_IP_CLIENTE): string {
+  const nombre = cabecera?.trim();
+  if (!nombre) return direccion;
+  const valor = headers.get(nombre)?.trim();
+  return valor && PARECE_IP.test(valor) ? valor : direccion;
+}
