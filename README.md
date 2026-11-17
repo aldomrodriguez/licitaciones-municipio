@@ -2,6 +2,18 @@
 
 Micrositio público de licitaciones, licitaciones privadas y concursos de precios, con un panel de carga para el área de Compras. La identidad del municipio (nombre, colores, logo, header, footer y textos) se configura desde el panel: el código no tiene nada de un municipio en particular.
 
+## Por qué existe
+
+Saber en qué se gasta el dinero público no debería depender del tamaño del municipio ni de su presupuesto para sistemas. Muchas gestiones publican sus compras como pueden: una página que se edita a mano, un PDF suelto o una planilla que nadie encuentra.
+
+Este proyecto es un aporte personal para que **cualquier municipio pueda publicar sus compras de forma clara, ordenada y siempre al día**, sin pagar licencias ni depender de un proveedor:
+
+- **Transparencia.** Cada llamado muestra su estado, sus fechas, sus documentos y su resultado. Los cambios importantes, como una prórroga, quedan en un historial público.
+- **Eficacia.** El área de Compras carga cada procedimiento una sola vez, guiada por etapas. El sistema le avisa lo que falta o lo que quedó demorado.
+- **Igualdad de oportunidades.** Los proveedores, sobre todo los locales, encuentran los llamados abiertos en un solo lugar.
+
+Es software libre: se puede usar, adaptar y mejorar. Si lo implementás en tu municipio o encontrás algo para mejorar, la idea es que esas mejoras vuelvan al proyecto y le sirvan a todos.
+
 **Stack:** Astro (SSR, Node) · TypeScript · Tailwind · SQLite. Todo el estado (base, documentos, logo) vive en una sola carpeta: `DATA_DIR`.
 
 La arquitectura, las reglas de cada etapa y las decisiones de seguridad están en [`docs/arquitectura.md`](docs/arquitectura.md).
@@ -132,6 +144,14 @@ Cada push a `main` se despliega con **Redeploy** o, si está activado, automáti
 | Los datos desaparecen después de un deploy | Falta el volumen en `/data`. |
 | La app no arranca después de subir `data/` | Los archivos no son del usuario `node`: falta el `chown` del paso 5. |
 | No puedo entrar y no hay otro admin | Con la app detenida, bajar la `licitaciones.db` **del servidor** (no usar una copia local vieja: se perderían los cambios de producción), restablecer la contraseña con `DATA_DIR=<carpeta> pnpm crear-admin "Nombre" email` (si el email existe, solo le cambia la contraseña), volver a subirla y arrancar. Mejor tener siempre dos administradores. |
+
+## Contribuir
+
+Cualquier aporte suma: reportar un error, proponer una mejora, corregir un texto o contar cómo lo usan en tu municipio.
+
+- **Errores y propuestas:** abrir un [issue](https://github.com/aldomrodriguez/licitaciones-municipio/issues) contando qué pasó o qué necesita tu área de Compras. La normativa cambia de una provincia a otra, y conocer esas diferencias ayuda a que el sistema sirva para más municipios.
+- **Cambios en el código:** un pull request chico y enfocado, que explique qué cambia, por qué y cómo se probó. Antes de enviarlo, `pnpm lint && pnpm check && pnpm test && pnpm test:e2e` tiene que pasar.
+- **Reglas del proyecto:** los textos van en español y nada puede suponer un municipio en particular (ni nombres, ni dominios de email, ni colores). Lo propio de cada municipio va en su configuración. El detalle está en [`docs/arquitectura.md`](docs/arquitectura.md).
 
 ## Licencia
 
