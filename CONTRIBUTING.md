@@ -26,6 +26,7 @@ pnpm dev     # http://localhost:4321
 - Montos en centavos enteros. Fechas de apertura como un día en hora argentina.
 - Nunca scripts en línea (la política de seguridad los bloquea), nunca `confirm()` ni `alert()`, y toda acción del panel con confirmación.
 - Accesibilidad obligatoria: HTML semántico, teclado y contraste.
+- Todo tiene que andar en un celular de 320 px de ancho sin scroll horizontal.
 
 El detalle completo está en `docs/arquitectura.md`. La misma guía, pensada para asistentes de código, está en [`.agents/skills/contribuir/SKILL.md`](.agents/skills/contribuir/SKILL.md).
 

@@ -42,7 +42,7 @@ const SUGERIDOS = [
     )
   }
 
-  <div class="mt-8 grid max-w-[860px] gap-8">
+  <div class="mt-8 grid grid-cols-1 max-w-[860px] gap-8">
     <!-- ─── Identidad ─────────────────────────────────────────────────────── -->
     <section aria-labelledby="t-identidad" class="rounded-lg border border-linea bg-white p-5 sm:p-6">
       <h2 id="t-identidad" class="text-lg font-bold">Identidad</h2>
@@ -125,7 +125,7 @@ const SUGERIDOS = [
         </div>
       </form>
 
-      <div class="mt-6 grid gap-6 border-t border-linea pt-6 sm:grid-cols-[1.4fr_1fr]">
+      <div class="mt-6 grid grid-cols-1 gap-6 border-t border-linea pt-6 sm:grid-cols-[1.4fr_1fr]">
         <ImagenMarca clase="logo" imagen={s.logo} nombre={s.nombre} />
         <ImagenMarca clase="favicon" imagen={s.favicon} nombre={s.nombre} />
       </div>
@@ -151,7 +151,7 @@ const SUGERIDOS = [
             <label for="direccion" class="etiqueta">Dirección <span class="font-normal text-gris">(opcional)</span></label>
             <input id="direccion" name="direccion" maxlength="120" value={s.direccion} class="campo" data-etiqueta="Dirección (barra superior)" placeholder="Calle 123, Localidad, Provincia" />
           </div>
-          <div class="grid gap-5 sm:grid-cols-[1.6fr_1fr]">
+          <div class="grid grid-cols-1 gap-5 sm:grid-cols-[1.6fr_1fr]">
             <div>
               <label for="sitioUrl" class="etiqueta">Sitio principal del organismo <span class="font-normal text-gris">(opcional)</span></label>
               <input id="sitioUrl" name="sitioUrl" type="url" maxlength="500" value={s.sitioUrl} class="campo" data-etiqueta="Sitio principal" placeholder="https://" aria-describedby="sitio-ayuda" />
@@ -169,7 +169,7 @@ const SUGERIDOS = [
           <div class="clear-both">
             <EditorEnlaces id="nav" nombre="nav" etiqueta="Menú del header" enlaces={s.nav} max={8} ayuda="Los links del menú principal, en orden. En el celular quedan en el menú desplegable." />
           </div>
-          <div class="grid gap-5 sm:grid-cols-[1fr_1.5fr]">
+          <div class="grid grid-cols-1 gap-5 sm:grid-cols-[1fr_1.5fr]">
             <div>
               <label for="destacadoTexto" class="etiqueta">Botón destacado <span class="font-normal text-gris">(opcional)</span></label>
               <input id="destacadoTexto" name="destacadoTexto" maxlength="60" value={s.destacado?.texto ?? ''} class="campo" data-etiqueta="Botón destacado: texto" placeholder="Ej. Trámites online" />

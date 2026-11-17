@@ -57,6 +57,7 @@ Las rutas y acciones nuevas no se registran hasta reiniciar el dev server.
 
 **Interfaz**
 - Tailwind 4 como única solución de estilos. El color del municipio es el token `marca`, nunca un color con nombre.
+- Todo tiene que andar a 320 px de ancho sin scroll horizontal (reglas en «Celular» de `docs/arquitectura.md`).
 - Íconos de `@tabler/icons`, uno por import (`@tabler/icons/outline/x.svg?raw`), renderizados con `components/ui/Icono.astro`.
 - Toda acción del panel lleva confirmación. **Nunca** `confirm()` ni `alert()`.
 - Ningún `<select>` ni selector de fecha nativo a la vista. El contenido agregado después de la carga se mejora con `mejorarControles(nodo)`.

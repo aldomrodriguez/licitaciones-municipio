@@ -13,7 +13,7 @@ interface Props {
 const { id, enlace } = Astro.props;
 ---
 
-<li data-fila class="grid gap-2 rounded-md border border-linea bg-papel/60 p-2.5 sm:grid-cols-[1fr_1.5fr_auto] sm:items-center sm:border-0 sm:bg-transparent sm:p-0">
+<li data-fila class="grid grid-cols-1 gap-2 rounded-md border border-linea bg-papel/60 p-2.5 sm:grid-cols-[1fr_1.5fr_auto] sm:items-center sm:border-0 sm:bg-transparent sm:p-0">
   <div>
     <label for={`${id}-texto`} class="etiqueta text-[13px] sm:sr-only">Texto</label>
     <input id={`${id}-texto`} data-texto required maxlength="60" value={enlace?.texto ?? ''} class="campo py-2" placeholder="Texto visible" />

@@ -5,9 +5,9 @@ const { nombre, logo, lema, columnas } = Astro.locals.sitio;
 const anio = new Date().getFullYear();
 ---
 
-<footer class="mt-auto bg-noche pt-16 text-white">
-  <div class="contenedor grid gap-8 pb-14 text-center sm:grid-cols-2 lg:grid-cols-[1.4fr_repeat(3,1fr)] lg:gap-11">
-    <div>
+<footer class="mt-auto bg-noche pt-10 text-white sm:pt-16">
+  <div class="contenedor grid grid-cols-2 gap-x-4 gap-y-8 pb-10 text-center sm:pb-14 lg:grid-cols-[1.4fr_repeat(3,1fr)] lg:gap-11">
+    <div class="col-span-2 lg:col-span-1">
       {
         logo ? (
           <img src={urlImagen(logo)} alt={nombre} width="140" height={altoPara(logo, 140)} class="mx-auto block max-h-[82px] w-[140px] object-contain" />
@@ -17,9 +17,10 @@ const anio = new Date().getFullYear();
       }
       {lema && <p class="mx-auto mt-4 max-w-[300px] text-[13px] leading-relaxed text-[#aeb2b6]">{lema}</p>}
     </div>
+    {/* Logo arriba a lo ancho; columnas de a dos en el celular, la última sola ocupa toda la fila. */}
     {
       columnas.map((col) => (
-        <div>
+        <div class="min-w-0 break-words last:even:col-span-2 lg:last:even:col-span-1">
           <h2 class="mt-2 mb-[18px] text-[13px] font-bold tracking-[.08em] text-marca-sobre-oscuro uppercase">{col.titulo}</h2>
           {col.textos.map((t) => (
             <p class="mb-3 text-[13px] text-[#c6c9cb]">{t}</p>

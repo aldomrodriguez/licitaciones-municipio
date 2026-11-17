@@ -17,14 +17,16 @@ const actual = pasos.indexOf(estado);
 const cortado = ESTADOS[estado].final && estado !== 'adjudicada';
 ---
 
-<ol class="grid gap-3 sm:flex sm:gap-0" aria-label="Etapas del procedimiento">
+{/* Con una sola etapa (privadas con resultado) el recorrido repetiría el estado: no se muestra. */}
+{pasos.length > 1 && (
+<ol class="flex" aria-label="Etapas del procedimiento">
   {
     pasos.map((p, i) => {
       const hecho = i < actual;
       const ahora = i === actual;
       return (
-        <li class="flex flex-1 items-center gap-3 sm:flex-col sm:items-start sm:gap-2">
-          <div class="flex w-auto items-center sm:w-full">
+        <li class="flex min-w-0 flex-1 flex-col items-start gap-2">
+          <div class="flex w-full items-center">
             <span
               class:list={[
                 'cifras grid size-8 shrink-0 place-items-center rounded-full border-2 text-sm font-bold',
@@ -36,9 +38,9 @@ const cortado = ESTADOS[estado].final && estado !== 'adjudicada';
             >
               {i + 1}
             </span>
-            {i < pasos.length - 1 && <span class:list={['hidden h-0.5 flex-1 sm:block', hecho ? 'bg-tinta' : 'bg-linea']} aria-hidden="true" />}
+            {i < pasos.length - 1 && <span class:list={['h-0.5 flex-1', hecho ? 'bg-tinta' : 'bg-linea']} aria-hidden="true" />}
           </div>
-          <span class:list={['text-sm', ahora ? 'font-bold text-tinta' : 'text-gris']}>
+          <span class:list={['pr-2 text-[13px] leading-snug sm:text-sm', ahora ? 'font-bold text-tinta' : 'text-gris']}>
             {ESTADOS[p].nombre}
             {ahora && <span class="sr-only"> (etapa actual)</span>}
           </span>
@@ -47,3 +49,4 @@ const cortado = ESTADOS[estado].final && estado !== 'adjudicada';
     })
   }
 </ol>
+)}

@@ -69,7 +69,7 @@ const avisoAdjudicatarios = enPapelera || reglas.adjudicatarios
     )
   }
 
-  <div class="mt-8 grid gap-8 lg:grid-cols-[1fr_320px]">
+  <div class="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[1fr_320px]">
     <div class="min-w-0 space-y-8">
       {editable ? <FormProcedimiento p={p} estado={d.estado} rol={usuario.rol} /> : <p class="text-gris">{p.objeto}</p>}
       <Invitados

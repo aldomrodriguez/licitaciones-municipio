@@ -50,6 +50,7 @@ El dev server de Astro 7 corre como daemon (`pnpm astro dev stop|logs`). **Las r
   - Todo `<select>` se reemplaza por un combobox accesible (patrón «select-only combobox» de ARIA APG). El select original queda oculto como fuente de verdad.
   - La fecha se escribe como `<input type="text" hidden data-fecha value="AAAA-MM-DD">` y se muestra con un calendario propio («date picker dialog» de APG), en español y con la semana empezando el lunes.
   - El contenido agregado después de cargar la página se mejora con `mejorarControles(nodo)`.
+  - Las listas y el calendario se abren con `dentroDeLaPantalla()`: si se salen por la derecha en el celular, se corren con `left` (no con `translate`, que igual ensancha la página).
 - **Marca configurable** (`lib/configuracion.ts`): nombre, colores, logo, favicon, header, footer y textos viven en la tabla `configuracion` (una fila JSON validada con Zod) y se editan en `/panel/configuracion` (solo admin). Sin fila guardada, el sitio es genérico («Municipio») y el panel avisa.
   - El middleware la lee en cada pedido (`Astro.locals.sitio`). Ningún componente puede tener texto, link ni color de un municipio en particular.
   - Colores: se elige uno y `lib/color.ts` deriva el resto. No se guarda un color con contraste menor a 4.5:1 con blanco. Los tonos se aplican pisando `--color-marca-*` con un `<style>` en `components/marca/Cabeza.astro`; el token de Tailwind se llama `marca` (nunca un color con nombre).
@@ -72,6 +73,15 @@ El dev server de Astro 7 corre como daemon (`pnpm astro dev stop|logs`). **Las r
 - Usuarios: toda mutación pasa por `lib/usuarios.ts` y queda en `cambios_usuarios` (se muestra en `/panel/usuarios`).
 - Subidas: se rechaza por `Content-Length` (413) antes de leer el cuerpo; el adaptador tiene `bodySizeLimit` de 27 MB.
 - Ningún texto, ejemplo ni validación supone un dominio de email o un municipio en particular.
+
+## Celular
+
+El ancho de referencia es **320 px** (el iPhone más angosto); se prueba también a 375. A ese ancho ninguna página puede tener scroll horizontal: lo cubre `tests/e2e/responsive.spec.ts`.
+
+- Una grilla que en pantallas chicas es de una columna lleva `grid-cols-1` explícito. Sin eso la columna es `auto` y un texto largo (una fecha completa, una opción de un desplegable) la ensancha más allá de la pantalla.
+- Los `<fieldset>` tienen `min-inline-size: 0` en `global.css`: por defecto no se achican por debajo de su contenido.
+- Pares dato y valor («Ofertas recibidas · 3») van en una sola línea en el celular, no uno debajo del otro.
+- Las tablas de varias columnas se apilan como tarjetas en el celular (ver `/panel/usuarios`), en vez de un scroll horizontal que esconde los botones.
 
 ## Reglas del panel
 

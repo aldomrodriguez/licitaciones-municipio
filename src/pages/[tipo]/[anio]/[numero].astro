@@ -47,8 +47,8 @@ const jsonLd = {
 
 <Publico titulo={nombre} descripcion={`${nombre}: ${p.objeto} Estado: ${def.nombre}.`} datosEstructurados={jsonLd}>
   <section class="border-b border-linea bg-papel">
-    <div class="contenedor py-10 sm:py-14">
-      <nav aria-label="Ubicación" class="mb-8 text-xs text-gris">
+    <div class="contenedor py-7 sm:py-14">
+      <nav aria-label="Ubicación" class="mb-5 text-xs text-gris sm:mb-8">
         <ol class="flex flex-wrap items-center gap-2.5">
           {
             primeraMiga && (
@@ -67,10 +67,10 @@ const jsonLd = {
         <p class="font-semibold text-gris">{TIPOS[p.tipo].nombre}</p>
         <EstadoBadge estado={d.estado} tamano="md" />
       </div>
-      <h1 class="cifras mt-2 text-[56px] leading-none font-extrabold tracking-[-.05em] sm:text-[88px]">
+      <h1 class="cifras mt-1 text-[52px] leading-none font-extrabold tracking-[-.05em] sm:text-[88px]">
         <span class="sr-only">{TIPOS[p.tipo].nombre} </span>n° {p.numero}/{p.anio}
       </h1>
-      <p class="mt-5 max-w-[760px] text-xl leading-snug text-balance">{p.objeto}</p>
+      <p class="mt-3 max-w-[760px] text-lg leading-snug text-balance sm:mt-5 sm:text-xl">{p.objeto}</p>
       {
         p.motivoEstado && def.pideMotivo && (
           <p class="mt-5 max-w-[760px] rounded-md border-l-4 border-peligro bg-white px-4 py-3 text-[15px]">
@@ -78,23 +78,21 @@ const jsonLd = {
           </p>
         )
       }
-      <div class="mt-10 max-w-[760px]">
-        <Recorrido tipo={p.tipo} estado={d.estado} />
-      </div>
+      <div class="mt-7 max-w-[760px] empty:hidden sm:mt-10"><Recorrido tipo={p.tipo} estado={d.estado} /></div>
     </div>
   </section>
 
-  <div class="contenedor grid gap-12 py-12 lg:grid-cols-[1fr_340px] lg:gap-16">
-    <div class="min-w-0 space-y-12">
+  <div class="contenedor grid grid-cols-1 gap-10 py-8 sm:gap-12 sm:py-12 lg:grid-cols-[1fr_340px] lg:gap-16">
+    <div class="min-w-0 space-y-10 sm:space-y-12">
       {
         datos.length > 0 && (
           <section aria-labelledby="t-datos">
             <h2 id="t-datos" class="text-2xl font-bold tracking-tight">Datos del procedimiento</h2>
-            <dl class="cifras mt-5 grid gap-x-8 sm:grid-cols-2">
+            <dl class="cifras mt-4 grid grid-cols-1 gap-x-8 sm:grid-cols-2">
               {datos.map(([k, v]) => (
-                <div class="border-t border-linea py-3">
+                <div class="flex items-baseline justify-between gap-4 border-t border-linea py-2.5 sm:block sm:py-3">
                   <dt class="text-sm text-gris">{k}</dt>
-                  <dd class="mt-0.5 font-semibold">{v}</dd>
+                  <dd class="text-right font-semibold sm:mt-0.5 sm:text-left">{v}</dd>
                 </div>
               ))}
             </dl>
@@ -107,7 +105,7 @@ const jsonLd = {
         d.adjudicaciones.length > 0 && (
           <section aria-labelledby="t-adj">
             <h2 id="t-adj" class="text-2xl font-bold tracking-tight">Adjudicación</h2>
-            <table class="cifras mt-5 w-full text-left">
+            <table class="cifras mt-4 w-full text-left">
               <caption class="sr-only">Proveedores adjudicados y montos</caption>
               <thead>
                 <tr class="border-b-2 border-tinta text-sm">
@@ -142,17 +140,17 @@ const jsonLd = {
           d.documentos.length === 0 ? (
             <p class="mt-4 text-gris">Todavía no hay documentación publicada para este procedimiento.</p>
           ) : (
-            <ul class="mt-5 divide-y divide-linea border-y border-linea">
+            <ul class="mt-4 divide-y divide-linea border-y border-linea">
               {d.documentos.map((doc) => (
                 <li>
-                  <a href={urlDescargaPublica(doc.id)} class="group flex items-center gap-4 py-4 hover:bg-papel sm:px-3" download>
-                    <span class="grid size-11 shrink-0 place-items-center rounded-md bg-marca-claro text-marca">
+                  <a href={urlDescargaPublica(doc.id)} class="group flex items-center gap-3 py-3.5 sm:gap-4 sm:py-4 hover:bg-papel sm:px-3" download>
+                    <span class="grid size-10 shrink-0 sm:size-11 place-items-center rounded-md bg-marca-claro text-marca">
                       <IconoArchivo mime={doc.mime} />
                     </span>
                     <span class="min-w-0 flex-1">
                       <span class="block font-semibold group-hover:text-marca">{doc.titulo}</span>
                       <span class="cifras block text-sm text-gris">
-                        {doc.categoria}. {etiquetaFormato(doc.mime)}, {formatearTamano(doc.tamano)}, publicado el {formatearFecha(doc.subidoEn, 'corta')}
+                        {doc.categoria !== doc.titulo && `${doc.categoria}. `}{etiquetaFormato(doc.mime)}, {formatearTamano(doc.tamano)}, publicado el {formatearFecha(doc.subidoEn, 'corta')}
                       </span>
                     </span>
                     <span class="hidden items-center gap-1.5 text-sm font-semibold text-marca sm:flex">
@@ -188,7 +186,7 @@ const jsonLd = {
           </ol>
         )
       }
-      <a href="/" class="btn-fantasma mt-10 -ml-4"><Icono svg={volver} tamano={18} /> Volver al listado</a>
+      <a href="/" class="btn-fantasma mt-8 -ml-4 sm:mt-10"><Icono svg={volver} tamano={18} /> Volver al listado</a>
     </aside>
   </div>
 </Publico>

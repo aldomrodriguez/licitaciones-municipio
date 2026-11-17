@@ -87,7 +87,7 @@ const apertura = (f: (typeof filas)[number]) => {
           <h2 id="t-atencion" class="flex items-center gap-2 font-semibold text-proceso">
             <Icono svg={alerta} tamano={18} /> Requieren atención
           </h2>
-          <ul class="mt-2 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
+          <ul class="mt-2 grid grid-cols-1 gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
             {pendientes.map((x) => (
               <li>
                 <a href={`/panel?atencion=${x.r}`} class="group flex items-baseline gap-2 rounded py-0.5 text-tinta hover:underline">

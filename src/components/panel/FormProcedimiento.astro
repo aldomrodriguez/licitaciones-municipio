@@ -66,8 +66,8 @@ const todoBloqueado = [...reglas.camposModalidad].every((c) => c === 'observacio
 
   <fieldset class="rounded-lg border border-linea bg-white p-5 sm:p-6">
     <legend class="float-left mb-5 w-full text-lg font-bold">Identificación</legend>
-    <div class="clear-both grid gap-5 sm:grid-cols-[1.4fr_.8fr_.8fr]">
-      <div>
+    <div class="clear-both grid grid-cols-2 gap-5 sm:grid-cols-[1.4fr_.8fr_.8fr]">
+      <div class="col-span-2 sm:col-span-1">
         <label for="tipo" class="etiqueta">Modalidad</label>
         {
           edicion ? (
@@ -112,7 +112,7 @@ const todoBloqueado = [...reglas.camposModalidad].every((c) => c === 'observacio
 
   <fieldset class="rounded-lg border border-linea bg-white p-5 sm:p-6">
     <legend class="float-left mb-5 w-full text-lg font-bold">Montos, apertura y ofertas</legend>
-    <div class="clear-both grid gap-5 sm:grid-cols-2">
+    <div class="clear-both grid grid-cols-1 gap-5 sm:grid-cols-2">
       <div>
         <label for="presupuestoOficial" class="etiqueta">Presupuesto oficial</label>
         <div class="relative">

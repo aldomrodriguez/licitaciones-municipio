@@ -70,7 +70,7 @@ const estadosFiltro = (['llamado', 'evaluacion', 'tramite', 'adjudicada', 'desie
     abiertos.length > 0 && (
       <section aria-labelledby="titulo-abiertos" class="bg-papel">
         <div class="contenedor py-9 sm:py-16">
-          <div class="grid gap-8 lg:grid-cols-[280px_1fr] lg:gap-16">
+          <div class="grid grid-cols-1 gap-8 lg:grid-cols-[280px_1fr] lg:gap-16">
             <div>
               <h2 id="titulo-abiertos" class="text-[29px] leading-tight font-bold tracking-[-.035em] sm:text-[35px]">Llamados abiertos</h2>
               <p class="mt-3 leading-relaxed text-gris">
@@ -87,14 +87,14 @@ const estadosFiltro = (['llamado', 'evaluacion', 'tramite', 'adjudicada', 'desie
   }
 
   <section aria-labelledby="titulo-listado">
-    <div class="contenedor py-12 sm:py-16">
+    <div class="contenedor py-9 sm:py-16">
       <div class="flex flex-wrap items-end justify-between gap-4">
         <h2 id="titulo-listado" class="text-[29px] leading-tight font-bold tracking-[-.035em] sm:text-[35px]">Todos los procedimientos</h2>
         <Modalidades />
       </div>
 
-      <form method="get" action="/#titulo-listado" class="mt-7 grid gap-3 rounded-lg bg-papel p-4 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr_auto]" data-filtros>
-        <div>
+      <form method="get" action="/#titulo-listado" class="mt-5 grid grid-cols-2 gap-3 rounded-lg bg-papel p-4 sm:mt-7 lg:grid-cols-[1.4fr_1fr_1fr_1fr_auto]" data-filtros>
+        <div class="col-span-2 lg:col-span-1">
           <label for="f-q" class="etiqueta">Buscar</label>
           <div class="relative">
             <span class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-gris"><Icono svg={buscar} tamano={18} /></span>
@@ -122,7 +122,7 @@ const estadosFiltro = (['llamado', 'evaluacion', 'tramite', 'adjudicada', 'desie
             {anios.map((a) => <option value={a} selected={a === anio}>{a}</option>)}
           </select>
         </div>
-        <div class="flex items-end gap-2">
+        <div class="flex min-w-0 items-end gap-2">
           <button type="submit" class="btn-primario w-full lg:w-auto">Filtrar</button>
           {filtrando && <a href="/#titulo-listado" class="btn-fantasma">Limpiar</a>}
         </div>

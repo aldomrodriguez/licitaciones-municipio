@@ -26,6 +26,19 @@ function icono(svg: string, tamano = 18, clase = '') {
     .replace('<svg', `<svg width="${tamano}" height="${tamano}" aria-hidden="true" focusable="false" class="shrink-0 ${clase}"`);
 }
 
+/** Si un desplegable recién abierto se sale por la derecha (celular), lo corre hacia adentro. */
+function dentroDeLaPantalla(el: HTMLElement) {
+  // Con `left` y no `translate`: la posición original igual ensancharía la página.
+  el.style.left = '';
+  el.style.right = '';
+  const r = el.getBoundingClientRect();
+  const sobra = r.right - (document.documentElement.clientWidth - 8);
+  if (sobra <= 0) return;
+  const corrimiento = Math.min(sobra, Math.max(r.left - 8, 0));
+  el.style.left = `${el.offsetLeft - corrimiento}px`;
+  el.style.right = 'auto';
+}
+
 const normalizar = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 function etiquetaDe(el: HTMLElement): HTMLLabelElement | null {
@@ -143,6 +156,7 @@ function mejorarSelect(sel: HTMLSelectElement) {
     dibujarOpciones();
     pintar();
     lista.hidden = false;
+    dentroDeLaPantalla(lista);
     combo.setAttribute('aria-expanded', 'true');
     marcar(Math.max(sel.selectedIndex, 0));
   };
@@ -330,7 +344,7 @@ function mejorarFecha(input: HTMLInputElement) {
   panel.setAttribute('aria-modal', 'false');
   panel.setAttribute('aria-label', `Elegir ${etiqueta?.textContent?.trim().toLowerCase() ?? 'fecha'}`);
   panel.hidden = true;
-  panel.className = 'absolute top-[calc(100%+6px)] left-0 z-40 w-[312px] rounded-xl border border-linea bg-white p-3 shadow-xl';
+  panel.className = 'absolute top-[calc(100%+6px)] left-0 z-40 w-[min(312px,calc(100vw-16px))] rounded-xl border border-linea bg-white p-3 shadow-xl';
   const tituloId = uid('mes');
   panel.innerHTML = `
     <div class="mb-2 flex items-center justify-between">
@@ -387,6 +401,7 @@ function mejorarFecha(input: HTMLInputElement) {
     foco = desdeIso(input.value) ?? desdeIso(hoyIso())!;
     dibujar();
     panel.hidden = false;
+    dentroDeLaPantalla(panel);
     boton.setAttribute('aria-expanded', 'true');
     enfocarDia();
   };

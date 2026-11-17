@@ -47,6 +47,10 @@
   body {
     @apply bg-white font-sans text-tinta antialiased;
   }
+  /* Por defecto un fieldset no se achica por debajo de su contenido y desborda la pantalla en el celular. */
+  fieldset {
+    min-inline-size: 0;
+  }
   :focus-visible {
     outline: 3px solid var(--color-marca);
     outline-offset: 2px;

@@ -36,7 +36,7 @@ const def = ESTADOS[estado];
     opciones.length > 0 ? (
       <div class="mt-5 border-t border-linea pt-4">
         <h3 class="text-sm font-semibold">Cambiar a</h3>
-        <ul class="mt-2 grid gap-2">
+        <ul class="mt-2 grid grid-cols-1 gap-2">
           {opciones.map((t) => {
             const destino = ESTADOS[t.destino];
             const peligro = destino.tono === 'peligro' || destino.tono === 'alerta' || t.correccion;

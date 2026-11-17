@@ -17,15 +17,15 @@ const estado = esEstado(p.estado) ? p.estado : 'borrador';
 <li>
   <a
     href={urlPublica(p)}
-    class="group grid gap-x-6 gap-y-2 border-b border-linea px-1 py-5 hover:bg-papel sm:grid-cols-[150px_1fr_auto] sm:px-4"
+    class="group grid grid-cols-[1fr_auto] gap-x-3 gap-y-1.5 border-b border-linea px-1 py-4 hover:bg-papel sm:grid-cols-[150px_1fr_auto] sm:gap-x-6 sm:gap-y-2 sm:px-4 sm:py-5"
   >
-    <div class="flex items-baseline gap-2 sm:block">
+    <div class="flex flex-wrap items-baseline gap-x-2 sm:block">
       <span class="text-[13px] font-semibold text-gris">{TIPOS[p.tipo].nombre}</span>
       <span class="cifras block text-xl font-extrabold tracking-tight">n° {p.numero}/{p.anio}</span>
     </div>
-    <div class="min-w-0">
+    <div class="col-span-2 min-w-0 sm:col-span-1">
       <p class="leading-snug font-medium group-hover:text-marca">{p.objeto}</p>
-      <p class="cifras mt-1.5 text-sm text-gris">
+      <p class="cifras mt-1 text-sm text-gris empty:hidden sm:mt-1.5">
         {
           estado === 'adjudicada' && total > 0 ? (
             <>
@@ -42,7 +42,7 @@ const estado = esEstado(p.estado) ? p.estado : 'borrador';
         }
       </p>
     </div>
-    <div class="sm:pt-1 sm:text-right">
+    <div class="col-start-2 row-start-1 pt-0.5 text-right sm:col-start-auto sm:row-start-auto sm:pt-1">
       <EstadoBadge estado={estado} />
     </div>
   </a>
