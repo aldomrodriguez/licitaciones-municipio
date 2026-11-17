@@ -147,7 +147,7 @@ Cada push a `main` se despliega con **Redeploy** o, si está activado, automáti
 
 ## Contribuir
 
-Cualquier aporte suma: reportar un error, proponer una mejora, corregir un texto o contar cómo lo usan en tu municipio.
+Cualquier aporte suma: reportar un error, proponer una mejora, corregir un texto o contar cómo lo usan en tu municipio. La guía completa está en [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 - **Errores y propuestas:** abrir un [issue](https://github.com/aldomrodriguez/licitaciones-municipio/issues) contando qué pasó o qué necesita tu área de Compras. La normativa cambia de una provincia a otra, y conocer esas diferencias ayuda a que el sistema sirva para más municipios.
 - **Cambios en el código:** un pull request chico y enfocado, que explique qué cambia, por qué y cómo se probó. Antes de enviarlo, `pnpm lint && pnpm check && pnpm test && pnpm test:e2e` tiene que pasar.
