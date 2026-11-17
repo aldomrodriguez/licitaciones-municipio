@@ -61,18 +61,35 @@ La app se despliega como una imagen Docker (`Dockerfile` del repo) con un volume
 
 ### 2. Variables de entorno
 
-| Variable | Valor | Notas |
-|---|---|---|
-| `SITE_URL` | `https://licitaciones.municipio.gob.ar` | **Marcarla como _Build Variable_.** Tiene que coincidir exactamente con el dominio. |
-| `ADMIN_EMAIL` | email del primer administrador | Solo si la base arranca vacía. |
-| `ADMIN_CLAVE` | contraseña de al menos 10 caracteres | Solo si la base arranca vacía. **Borrarla después del primer arranque.** |
-| `ADMIN_NOMBRE` | nombre del primer administrador | Opcional. |
-| `CABECERA_IP_CLIENTE` | `cf-connecting-ip` | **Solo si el sitio está detrás de Cloudflare** (u otro proxy que mande la IP real) y no se puede entrar directo al servidor. Sin esto, el límite de intentos de login cuenta a todos los visitantes como si fueran uno. |
-| `DATA_DIR` | no definirla | La imagen ya usa `/data`, que es el volumen. Si Coolify la toma del `.env.example`, que quede en `/data`. |
+Coolify puede proponer las variables del `.env.example`. Revisalas, o pegá este bloque en **Environment Variables → Developer view** y completalo:
+
+```
+SITE_URL=https://licitaciones.municipio.gob.ar
+ADMIN_NOMBRE=
+ADMIN_EMAIL=
+ADMIN_CLAVE=
+```
+
+| Variable | Valor | Build / runtime | Notas |
+|---|---|---|---|
+| `SITE_URL` | `https://licitaciones.municipio.gob.ar` | **Las dos** | Tiene que coincidir exactamente con el dominio. |
+| `ADMIN_EMAIL` | email del primer administrador | Runtime | Solo si la base arranca vacía. |
+| `ADMIN_CLAVE` | contraseña de al menos 10 caracteres | **Solo runtime** | Solo si la base arranca vacía. En build puede quedar a la vista en el log. **Borrarla después del primer arranque.** |
+| `ADMIN_NOMBRE` | nombre del primer administrador | Runtime | Opcional. |
+| `CABECERA_IP_CLIENTE` | `cf-connecting-ip` | Runtime | **Solo si el sitio está detrás de Cloudflare** (u otro proxy que mande la IP real) y no se puede entrar directo al servidor. Ver «Detrás de Cloudflare». |
+| `DATA_DIR` | no definirla | — | La imagen ya usa `/data`, que es el volumen. Si quedó definida, tiene que ser `/data`: con `./data` la base queda **fuera del volumen** y se pierde en cada deploy. |
 
 > **`SITE_URL` como variable de build es obligatoria.** El dominio queda fijo al compilar (canonical, sitemap y protección CSRF del login). Si la imagen se compila con otro dominio, el sitio funciona pero **el login responde 403**.
 
 `ADMIN_*` solo crea el usuario si la base no tiene ninguno. Si vas a subir una base existente (paso 5), no hacen falta.
+
+### Detrás de Cloudflare
+
+Si el dominio está en Cloudflare:
+
+- Si el servidor solo acepta tráfico de Cloudflare en los puertos 80 y 443 (es lo habitual), el registro DNS tiene que estar **con proxy (nube naranja)**. En «DNS only» el sitio no responde desde afuera.
+- Agregar `CABECERA_IP_CLIENTE=cf-connecting-ip`. Sin ella, la app ve la IP de Cloudflare y no la del visitante, y el límite de intentos de login cuenta a todos como si fueran uno: 30 errores de cualquiera bloquean el login de todos durante 15 minutos.
+- **No la configures si al servidor se puede entrar directo** sin pasar por Cloudflare: cualquiera podría mandar esa cabecera con una IP inventada y esquivar el límite.
 
 ### 3. Volumen persistente
 
@@ -136,14 +153,16 @@ Hace una copia consistente de la base en `/data/backups` y conserva las últimas
 
 ### Actualizar
 
-Cada push a `main` se despliega con **Redeploy** o, si está activado, automáticamente. Las migraciones nuevas se aplican solas al arrancar y los datos del volumen no se tocan.
+Después de cada push a `main`, **Redeploy** en Coolify. Un repo agregado como «Public Repository» no se despliega solo: para eso hay que configurar el webhook de GitHub o conectarlo con la GitHub App. Las migraciones nuevas se aplican solas al arrancar y los datos del volumen no se tocan.
 
 ### Problemas comunes
 
 | Síntoma | Causa |
 |---|---|
 | El login responde 403 | `SITE_URL` no está marcada como variable de build o no coincide con el dominio. Corregirla y hacer **Redeploy** (hay que recompilar). |
-| Los datos desaparecen después de un deploy | Falta el volumen en `/data`. |
+| El sitio no responde desde afuera, pero el contenedor está «healthy» | Con Cloudflare, el DNS está en «DNS only» y el servidor solo acepta tráfico de Cloudflare: activar el proxy (nube naranja). Sin Cloudflare, revisar el firewall (puertos 80 y 443). |
+| Los datos desaparecen después de un deploy | Falta el volumen en `/data`, o `DATA_DIR` quedó en `./data`. |
+| Demasiados intentos de login bloquean a todos a la vez | El sitio está detrás de un proxy y falta `CABECERA_IP_CLIENTE`. |
 | La app no arranca después de subir `data/` | Los archivos no son del usuario `node`: falta el `chown` del paso 5. |
 | No puedo entrar y no hay otro admin | Con la app detenida, bajar la `licitaciones.db` **del servidor** (no usar una copia local vieja: se perderían los cambios de producción), restablecer la contraseña con `DATA_DIR=<carpeta> pnpm crear-admin "Nombre" email` (si el email existe, solo le cambia la contraseña), volver a subirla y arrancar. Mejor tener siempre dos administradores. |
 
